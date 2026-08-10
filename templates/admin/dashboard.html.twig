@@ -1,0 +1,59 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Tableau de bord — GMAO Roltech{% endblock %}
+
+{% block main %}
+<div class="row" style="gap: 16px 0;">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Machines</h5>
+                <p class="card-text" style="font-size: 2rem;">{{ totalMachines }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">En service</h5>
+                <p class="card-text" style="font-size: 2rem;">{{ machinesEnService }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-danger mb-3">
+            <div class="card-body">
+                <h5 class="card-title">En panne</h5>
+                <p class="card-text" style="font-size: 2rem;">{{ machinesEnPanne }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">En maintenance</h5>
+                <p class="card-text" style="font-size: 2rem;">{{ machinesEnMaintenance }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" style="gap: 16px 0; margin-top: 8px;">
+    <div class="col-sm-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pannes ouvertes</h5>
+                <p class="card-text" style="font-size: 1.5rem;">{{ faultsOuvertes }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Interventions en cours</h5>
+                <p class="card-text" style="font-size: 1.5rem;">{{ interventionsEnCours }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
