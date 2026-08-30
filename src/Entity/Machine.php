@@ -166,4 +166,8 @@ class Machine
 
         return $this;
     }
+    public function __toString(): string
+{
+    return $this->name ?? 'Machine #' . $this->id;
+}
 }

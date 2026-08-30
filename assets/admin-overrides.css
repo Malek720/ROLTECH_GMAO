@@ -1,0 +1,92 @@
+/* Overrides EasyAdmin's own theme variables — confirmed from the actual
+   installed vendor CSS (variables-theme.css / sidebar.css), not guessed. */
+
+:root {
+    /* --- sidebar: bigger, matching the login page's Nord scale --- */
+    --sidebar-max-width: 300px;
+    --sidebar-padding-left: var(--ea-sp-7);
+    --sidebar-padding-right: var(--ea-sp-7);
+    --sidebar-menu-items-padding-left: var(--ea-sp-5);
+    --sidebar-menu-items-padding-right: var(--ea-sp-7);
+
+    /* --- smoother, slightly slower transitions across the whole backend --- */
+    --ea-duration-fast: 160ms;
+    --ea-duration-default: 240ms;
+    --ea-duration-slow: 320ms;
+    --ea-duration-slower: 420ms;
+    --ea-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ea-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* --- confirmed real tokens (variables-theme.css) — nudged up one notch,
+       on top of what Theme::spacing('xl') already does via --ea-sp-* --- */
+    --font-size-base: 15px;
+    --font-size-sm: 14px;
+    --font-size-lg: 17px;
+
+    --icon-size-sm: 18px;  /* menu / dropdown items, inline with text */
+    --icon-size-md: 22px;  /* toolbars, headers, toggles */
+    --icon-size-lg: 26px;  /* modal headers, avatars */
+}
+
+/* Bigger sidebar icons to match "easier to hit" goal */
+.ea-sidebar-item-icon svg,
+.ea-sidebar-item-icon {
+    font-size: 1.15em;
+}
+
+/* --- glass/depth treatment, echoing the login page's aesthetic --- */
+.ea-sidebar {
+    background: color-mix(in srgb, var(--sidebar-bg) 78%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.rtn-stat-card, .rtn-info-card {
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    transition: transform var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out),
+                box-shadow var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out);
+}
+.rtn-stat-card:hover, .rtn-info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+/* --- "cardify" the datagrid: each row becomes its own rounded tile
+   in a CSS grid, using only confirmed real selectors from datagrids.css --- */
+table.datagrid {
+    border-collapse: separate;
+    border-spacing: 0 14px;
+}
+table.datagrid thead {
+    display: none;
+}
+table.datagrid tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+}
+table.datagrid tbody tr {
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    background: var(--content-panel-bg, var(--body-bg));
+    border: 1px solid var(--table-cell-border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+    padding: 18px 20px;
+    transition: transform var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out),
+                box-shadow var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out);
+}
+table.datagrid tbody tr:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+}
+table.datagrid tbody td {
+    border: none !important;
+    padding: 4px 0 !important;
+    color: var(--table-cell-color);
+}
+table.datagrid tbody td.actions {
+    margin-top: auto;
+    padding-top: 10px !important;
+}

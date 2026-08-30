@@ -1,0 +1,14 @@
+{# templates/admin/field/role_badge.html.twig #}
+{% set roleMap = {
+    'ROLE_ADMIN': { icon: 'fa-shield', color: '#b48ead', label: 'Administrateur' },
+    'ROLE_RESPONSABLE': { icon: 'fa-chart-line', color: '#d08770', label: 'Responsable' },
+    'ROLE_TECHNICIEN': { icon: 'fa-wrench', color: '#88c0d0', label: 'Technicien' },
+} %}
+
+{% for role in field.value %}
+    {% set entry = roleMap[role] ?? { icon: 'fa-user', color: '#4c566a', label: role } %}
+    <span class="rtn-badge" style="--rtn-badge-color: {{ entry.color }}; margin-right: 6px;">
+        <span class="rtn-badge-icon"><i class="fa {{ entry.icon }}"></i></span>
+        {{ entry.label }}
+    </span>
+{% endfor %}

@@ -49,14 +49,23 @@ class DashboardController extends AbstractDashboardController
             ->setTheme(Theme::new()
                 // Nord "frost" blue — same family as the login page's accent colors
                 ->primaryColor('#5e81ac', dark: '#88c0d0')
-                ->radius('lg')
-                // 'lg' bumps paddings/control sizes across the whole interface —
-                // this is what makes icons, buttons, and rows feel bigger/easier to hit
-                ->spacing('lg')
+                ->radius('xl')
+                // 'xl' is the largest preset — biggest paddings, control sizes,
+                // row heights across the whole interface
+                ->spacing('xl')
                 // 'slate' is the coolest built-in gray scale, closest to Nord's
                 // polar-night/snow-storm neutrals
                 ->grays('slate', dark: 'slate')
             );
+    }
+
+    public function configureAssets(): \EasyCorp\Bundle\EasyAdminBundle\Config\Assets
+    {
+        // addCssFile (unlike addAssetMapperEntry) is the plain-CSS method —
+        // it doesn't go through importmap.php, it resolves the path via the
+        // Asset component directly, same mechanism as asset() on /login.
+        return \EasyCorp\Bundle\EasyAdminBundle\Config\Assets::new()
+            ->addCssFile('admin-overrides.css');
     }
 
     public function configureMenuItems(): iterable

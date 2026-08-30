@@ -153,4 +153,10 @@ class Fault
 
         return $this;
     }
+    public function __toString(): string
+{
+    $machineName = $this->machine?->getName() ?? 'Machine inconnue';
+    $date = $this->reportedAt?->format('d/m/Y') ?? '';
+    return sprintf('%s — %s', $machineName, $date);
+}
 }

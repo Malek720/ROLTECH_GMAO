@@ -1,0 +1,38 @@
+{# templates/admin/field/badge.html.twig
+   Expects: field.value (the raw string), field.customOptions.badgeMap (array) #}
+
+{% set raw = field.value %}
+{% set map = field.customOptions.badgeMap ?? {} %}
+{% set entry = map[raw] ?? { icon: 'fa-circle', color: '#4c566a', label: raw } %}
+
+<span class="rtn-badge" style="--rtn-badge-color: {{ entry.color }};">
+    <span class="rtn-badge-icon"><i class="fa {{ entry.icon }}"></i></span>
+    {{ entry.label }}
+</span>
+
+<style>
+    .rtn-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        background: color-mix(in srgb, var(--rtn-badge-color) 16%, white);
+        color: var(--rtn-badge-color);
+    }
+    .ea-dark-scheme .rtn-badge {
+        background: color-mix(in srgb, var(--rtn-badge-color) 28%, #2e3440);
+        color: color-mix(in srgb, var(--rtn-badge-color) 70%, white);
+    }
+    .rtn-badge-icon {
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--rtn-badge-color);
+        color: white;
+        font-size: 10px;
+        flex-shrink: 0;
+    }
+</style>
