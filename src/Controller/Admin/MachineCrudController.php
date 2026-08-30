@@ -15,7 +15,7 @@ class MachineCrudController extends AbstractCrudController
         return Machine::class;
     }
 
-    /*
+
     public function configureFields(string $pageName): iterable
     {
         return [
@@ -23,6 +23,7 @@ class MachineCrudController extends AbstractCrudController
             TextField::new('title'),
             TextEditorField::new('description'),
         ];
+        
     }
-    */
+
 }

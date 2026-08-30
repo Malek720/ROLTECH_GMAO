@@ -12,6 +12,7 @@ use App\Repository\InterventionRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Theme;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -40,15 +41,30 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('Roltech Gmao');
+            ->setTitle('RolTech GMAO')
+
+            // dark by default, matching the login page's Nord palette
+            ->setDefaultColorScheme('dark')
+
+            ->setTheme(Theme::new()
+                // Nord "frost" blue — same family as the login page's accent colors
+                ->primaryColor('#5e81ac', dark: '#88c0d0')
+                ->radius('lg')
+                // 'lg' bumps paddings/control sizes across the whole interface —
+                // this is what makes icons, buttons, and rows feel bigger/easier to hit
+                ->spacing('lg')
+                // 'slate' is the coolest built-in gray scale, closest to Nord's
+                // polar-night/snow-storm neutrals
+                ->grays('slate', dark: 'slate')
+            );
     }
 
     public function configureMenuItems(): iterable
     {
-        yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
+        yield MenuItem::linkToDashboard('Dashboard', 'fa fa-house');
         yield MenuItem::linkTo(UserCrudController::class, 'Users', 'fa fa-users');
-        yield MenuItem::linkTo(MachineCrudController::class, 'Machines', 'fa fa-cogs');
-        yield MenuItem::linkTo(FaultCrudController::class, 'Faults', 'fa fa-exclamation-triangle');
+        yield MenuItem::linkTo(MachineCrudController::class, 'Machines', 'fa fa-gears');
+        yield MenuItem::linkTo(FaultCrudController::class, 'Faults', 'fa fa-triangle-exclamation');
         yield MenuItem::linkTo(InterventionCrudController::class, 'Interventions', 'fa fa-wrench');
     }
 }

@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion — RolTech GMAO{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('styles/login.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="rtn-stage" data-turbo="false">
+    <div class="rtn-card" id="rtn-card">
+        <div class="rtn-sidebar">
+            <div class="rtn-brand">
+                <span class="rtn-brand-mark"></span>
+                <span>
+                    <div class="rtn-brand-text">RolTech GMAO</div>
+                    <div class="rtn-brand-sub">Maintenance industrielle</div>
+                </span>
+            </div>
+
+            <nav class="rtn-nav">
+                <button class="rtn-nav-item" type="button" data-role="technicien" data-label="Technicien" data-accent="#88c0d0">
+                    <span class="rtn-nav-icon">
+                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>
+                        </svg>
+                    </span>
+                    Technicien
+                </button>
+
+                <button class="rtn-nav-item" type="button" data-role="responsable" data-label="Responsable" data-accent="#d08770">
+                    <span class="rtn-nav-icon">
+                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M3 17l4-6 4 3 5-8 5 6M3 20h18"/>
+                        </svg>
+                    </span>
+                    Responsable
+                </button>
+
+                <button class="rtn-nav-item" type="button" data-role="admin" data-label="Administrateur" data-accent="#b48ead">
+                    <span class="rtn-nav-icon">
+                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 13a7.97 7.97 0 0 0 0-2l2-1.6-2-3.4-2.4 1a8 8 0 0 0-1.7-1L15 3h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.97 7.97 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a8 8 0 0 0 1.7 1L11 21h4l.3-2.4a8 8 0 0 0 1.7-1l2.4 1 2-3.4z"/>
+                        </svg>
+                    </span>
+                    Administrateur
+                </button>
+            </nav>
+
+            <div class="rtn-sidebar-footer">
+                Roller Technology Systems<br>Industry — Tunis
+            </div>
+        </div>
+
+        <div class="rtn-main">
+            {% if error %}
+                <div class="rtn-error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+            <div id="rtn-main-slot"><!-- filled by login.js on load / role click --></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.rtnCsrfToken = "{{ csrf_token('authenticate') }}";
+    window.rtnLastUsername = "{{ last_username|e('js') }}";
+</script>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script type="module" src="{{ asset('login.js') }}"></script>
+{% endblock %}
