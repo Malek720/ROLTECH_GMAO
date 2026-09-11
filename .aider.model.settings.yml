@@ -1,0 +1,7 @@
+- name: openai/qwen3-14b
+  extra_params:
+    max_input_tokens: 10000
+    max_tokens: 2000
+  weak_model_name: openai/qwen3-14b
+  use_repo_map: true
+  reasoning_tag: think

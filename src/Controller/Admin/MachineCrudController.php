@@ -20,6 +20,17 @@ class MachineCrudController extends AbstractCrudController
         return [
             IdField::new('id')->hideOnForm(),
 
+            TextField::new('category', 'Icône')
+                ->setTemplatePath('admin/field/lead_icon.html.twig')
+                ->setCustomOption('badgeMap', [
+                    'Presse' => ['icon' => 'fa-gears', 'color' => '#5e81ac'],
+                    'Usinage' => ['icon' => 'fa-industry', 'color' => '#88c0d0'],
+                    'Manutention' => ['icon' => 'fa-truck-ramp-box', 'color' => '#b48ead'],
+                    'Utilitaire' => ['icon' => 'fa-plug', 'color' => '#4c566a'],
+                ])
+                ->onlyOnIndex()
+                ->setLabel(false),
+
             TextField::new('name', 'Nom'),
             TextField::new('model', 'Modèle'),
             TextField::new('serialNumber', 'Numéro de série'),

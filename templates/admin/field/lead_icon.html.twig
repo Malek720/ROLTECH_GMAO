@@ -1,0 +1,23 @@
+{% set raw = field.value %}
+{% set map = field.customOptions.get('badgeMap', {}) %}
+{% set entry = map[raw] ?? { icon: 'fa-gear', color: '#4c566a' } %}
+
+<div class="rtn-lead-icon" style="--rtn-badge-color: {{ entry.color }};">
+    <i class="fa {{ entry.icon }}"></i>
+</div>
+
+<style>
+    .rtn-lead-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        background: color-mix(in srgb, var(--rtn-badge-color) 16%, white);
+        color: var(--rtn-badge-color);
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+    .ea-dark-scheme .rtn-lead-icon {
+        background: color-mix(in srgb, var(--rtn-badge-color) 28%, #2e3440);
+        color: color-mix(in srgb, var(--rtn-badge-color) 70%, white);
+    }
+</style>

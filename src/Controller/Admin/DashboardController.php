@@ -23,6 +23,7 @@ class DashboardController extends AbstractDashboardController
         private MachineRepository $machineRepository,
         private FaultRepository $faultRepository,
         private InterventionRepository $interventionRepository,
+        private \App\Service\AdminStatsProvider $statsProvider,
     ) {
     }
 
@@ -35,6 +36,7 @@ class DashboardController extends AbstractDashboardController
             'machinesEnService' => $this->machineRepository->count(['status' => 'en service']),
             'faultsOuvertes' => $this->faultRepository->count(['status' => 'ouverte']),
             'interventionsEnCours' => $this->interventionRepository->count(['status' => 'en cours']),
+            'statsJson' => json_encode($this->statsProvider->getStats()),
         ]);
     }
 
@@ -65,7 +67,8 @@ class DashboardController extends AbstractDashboardController
         // it doesn't go through importmap.php, it resolves the path via the
         // Asset component directly, same mechanism as asset() on /login.
         return \EasyCorp\Bundle\EasyAdminBundle\Config\Assets::new()
-            ->addCssFile('admin-overrides.css');
+            ->addCssFile('admin-overrides.css')
+            ->addJsFile('admin-overrides.js');
     }
 
     public function configureMenuItems(): iterable
