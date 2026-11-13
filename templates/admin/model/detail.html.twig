@@ -1,0 +1,20 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+{% block content_title %}Catalogue {{ model.code }}{% endblock %}
+{% block main %}
+<p>{{ model.name }} · {{ model.family }} · {% include 'components/status_badge.html.twig' with {status: model.dataStatus} only %}</p>
+<p>Charge maximale : {{ model.maxLoadKg is null ? 'charge max. à confirmer' : model.maxLoadKg ~ ' kg' }} · Machines : {{ model.machines|length }}</p>
+<form method="post" action="{{ path('admin_model_regenerate', {id: model.id}) }}">
+    <input type="hidden" name="_token" value="{{ regenerateCsrfToken }}">
+    <button class="btn btn-primary" type="submit">Régénérer les plannings</button>
+</form>
+<h2>Modules et pièces</h2>
+<ul>{% for module in model.modules %}{% if module.parent is null %}
+    <li><strong>{{ module.code }} — {{ module.name }}</strong> {% include 'components/status_badge.html.twig' with {status: module.dataStatus} only %}
+        {% include 'admin/model/_module_tree.html.twig' with {module: module} only %}
+    </li>
+{% endif %}{% endfor %}</ul>
+<h2>Tâches</h2>
+<ul>{% for task in model.maintenanceTasks %}<li>{{ task.action }} — {{ task.module ? task.module.code : 'Modèle' }} {% include 'components/status_badge.html.twig' with {status: task.dataStatus} only %}</li>{% endfor %}</ul>
+<h2>Machines</h2>
+<ul>{% for machine in model.machines %}<li>{{ machine.serialNumber }} — {{ machine.name }}</li>{% endfor %}</ul>
+{% endblock %}

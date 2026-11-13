@@ -1,0 +1,32 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Plan de maintenance{% endblock %}
+
+{% block main %}
+<div class="rtn-plan">
+    <form method="get" class="rtn-plan-filter">
+        <label for="site">Site</label>
+        <select id="site" name="site">
+            <option value="0">Tous les sites</option>
+            {% for site in sites %}
+                <option value="{{ site.id }}" {% if selectedSite == site.id %}selected{% endif %}>{{ site }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrer</button>
+    </form>
+    <div class="rtn-plan-table">
+        <div class="rtn-plan-row rtn-plan-header"><span>Machine</span><span>Site</span><span>Tâche</span><span>Échéance</span><span>État</span></div>
+        {% for schedule in schedules %}
+            <div class="rtn-plan-row">
+                <span><a href="{{ path('machine_fiche', {id: schedule.machine.id}) }}">{{ schedule.machine }}</a></span>
+                <span>{{ schedule.machine.site }}</span>
+                <span>{{ schedule.task }}</span>
+                <span>{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span>
+                <span class="rtn-state rtn-state-{{ schedule.state }}">{{ schedule.state|capitalize }}</span>
+            </div>
+        {% else %}
+            <p>Aucune tâche planifiée.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

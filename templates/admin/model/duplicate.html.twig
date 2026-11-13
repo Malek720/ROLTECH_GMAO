@@ -1,0 +1,10 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+{% block content_title %}Dupliquer le modèle {{ model.code }}{% endblock %}
+{% block main %}
+<form method="post" class="rtn-form">
+    <input type="hidden" name="_token" value="{{ csrfToken }}">
+    <label>Code du nouveau modèle <input required name="code" value="{{ model.code }}-COPY"></label>
+    <label>Nom du nouveau modèle <input required name="name" value="{{ model.name }} (copie)"></label>
+    <button class="btn btn-primary" type="submit">Créer la copie</button>
+</form>
+{% endblock %}

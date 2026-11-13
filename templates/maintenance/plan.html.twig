@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Plan de maintenance{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <header class="rtn-dashboard-header">
+        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Plan de maintenance</h1></div>
+        <nav class="rtn-nav"><a href="{{ path('responsable_dashboard') }}">Tableau de bord</a><a href="{{ path('app_logout') }}">Se déconnecter</a></nav>
+    </header>
+    <section class="rtn-card">
+        <form method="get" class="rtn-form">
+            <label class="rtn-form-field">Site
+                <select name="site" {% if sites|length <= 1 %}disabled{% endif %}>
+                    {% for site in sites %}<option value="{{ site.id }}" {% if selectedSite == site.id %}selected{% endif %}>{{ site }}</option>{% endfor %}
+                </select>
+            </label>
+        </form>
+    </section>
+    <section class="rtn-card">
+        <h2>Tâches planifiées</h2>
+        <div class="rtn-plan-table">
+            <div class="rtn-plan-row rtn-plan-header"><span>Machine</span><span>Site</span><span>Tâche</span><span>Échéance</span><span>État</span></div>
+            {% for schedule in schedules %}
+                <div class="rtn-plan-row">
+                    <span><a href="{{ path('machine_fiche', {id: schedule.machine.id}) }}">{{ schedule.machine }}</a></span>
+                    <span>{{ schedule.machine.site }}</span>
+                    <span>{{ schedule.task }}</span>
+                    <span>{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span>
+                    <span class="rtn-pill rtn-pill-{{ schedule.state }}">{{ schedule.state|capitalize }}</span>
+                </div>
+            {% else %}<p>Aucune tâche planifiée.</p>{% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

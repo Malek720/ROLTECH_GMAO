@@ -73,6 +73,13 @@ string matching everywhere (badge maps, stat counts) is fragile to typos.
 All four entities have `__toString()` implemented (required — EasyAdmin's
 `AssociationField` crashes without it).
 
+Maintenance planning uses only usage-based predictive thresholds: a schedule
+is `proche` at 80% and `echue` at 100% of its configured calendar or operating-
+hour interval. There is no machine-learning prediction. An overdue schedule
+creates at most one open preventive intervention, assigns the same-site
+technician with the fewest open interventions, and notifies site responsables
+when no technician is available.
+
 Fixtures (`src/DataFixtures/AppFixtures.php`) seed 4 users, 4 machines, 3
 faults, 3 interventions with realistic French data matching the above
 vocabulary exactly.
@@ -269,3 +276,72 @@ columns use a shared **badge template** system:
   rendered HTML (checking for the actual `<link>`/`<script>` tag and its
   resolved hashed filename) rather than trusting a fix worked from code
   review alone.
+
+## Multi-model catalog and planning (Phase 1)
+
+The catalog supports seven machine models:
+`OC-CA1100`, `HLS-CA1100`, `HLS-PXL-CA1100`, `HLS-PXL-CA1100-01`,
+`PPXXL-CA1100`, `HP-2000X` and `AirMax-300`. Only `OC-CA1100` is confirmed
+data; the other catalog rows are demonstration data. Data-status values are
+exactly `confirmed` and `demo`, displayed in French as “Données confirmées” or
+“Données de démonstration”.
+
+Modules, parts and maintenance tasks belong to a `MachineModel`. Module codes
+are unique per model, not globally. The migration creates the confirmed
+`OC-CA1100` row and the `AUTRE` placeholder, backfills existing machines,
+modules and tasks, then removes the former free-text model columns. On the
+current database, there are 13 maintenance tasks, all linked to modules; none
+requires the part-based fallback and none is assigned to `AUTRE`.
+
+Active schedules have `archivedAt IS NULL`. When a machine changes model,
+schedules from the old model are archived rather than deleted, and missing
+schedules for the new model are generated. Planners, maintenance checks and
+dashboard statistics ignore archived schedules. Schedule synchronization is
+performed by `MachineScheduleListener` through `onFlush` and guarded
+`postFlush`, calling the idempotent `MachineScheduleGenerator`; controllers and
+fixtures do not own this invariant.
+
+The Phase 1 migration is intentionally irreversible. It drops legacy free-text
+model columns after backfill, so rollback must be performed by restoring the
+database backup. The migration also removes its temporary `data_status`
+defaults before completion. The current database has no legacy unique module
+index; the migration creates the `(machine_model_id, code)` unique index.
+
+The configured database server is MariaDB `10.4.32`; this must match the
+`serverVersion` used by Doctrine DBAL. Each machine must provide its own
+`DATABASE_URL` in `.env.local`, including the actual MariaDB version, for
+example:
+
+```dotenv
+DATABASE_URL="mysql://root:@127.0.0.1:3306/roltech_gmao?serverVersion=10.4.32-MariaDB&charset=utf8mb4"
+```
+
+Copy the `DATABASE_URL` value from `.env` into your local `.env.local`, then
+replace its database credentials/name and `serverVersion` for that machine.
+Do not commit `.env.local`. Before applying the migration, use
+`doctrine:migrations:migrate --dry-run` and review the generated SQL. Never run
+the migration or fixtures against the main database without a verified backup.
+
+New Doctrine tables use `utf8mb4_unicode_ci` through `default_table_options`.
+The existing `machine_module` table remains `utf8mb4_general_ci` for its
+legacy text columns (`code` and `model`); the Phase 1 migration does not
+convert existing tables. Its text join to `machine_model.code` therefore uses
+an explicit `utf8mb4_unicode_ci` collation.
+
+## Catalog CSV format
+
+Catalog import/export uses UTF-8 with BOM and semicolon delimiters for French
+Excel. The header order is:
+
+```text
+record_type;module_code;parent_module_code;name;part_number;quantity;description;action;frequency_days;frequency_hours;procedure;data_status
+```
+
+Rows are `module`, `part` or `task`. Modules require `module_code` and `name`;
+parts require `module_code` and `name`; tasks require `action` and at least one
+positive frequency. `parent_module_code`, part number, quantity and procedure
+are optional where applicable. `data_status` is `confirmed` or `demo`; blank
+means `demo`. Imports preview every row before writing, never delete records,
+and commit confirmed changes in one transaction. Exported text beginning with
+`=`, `+`, `-` or `@` is prefixed with a single quote to prevent spreadsheet
+formula injection.

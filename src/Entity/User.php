@@ -36,6 +36,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     private ?string $fullName = null;
 
+    #[ORM\ManyToOne(inversedBy: 'users')]
+    private ?Site $site = null;
+
     /**
      * @var Collection<int, Fault>
      */
@@ -48,10 +51,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Intervention::class, mappedBy: 'technician', orphanRemoval: true)]
     private Collection $interventions;
 
+    /** @var Collection<int, Notification> */
+    #[ORM\OneToMany(targetEntity: Notification::class, mappedBy: 'recipient', orphanRemoval: true)]
+    private Collection $notifications;
+
     public function __construct()
     {
         $this->reportedFaults = new ArrayCollection();
         $this->interventions = new ArrayCollection();
+        $this->notifications = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -147,6 +155,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getSite(): ?Site
+    {
+        return $this->site;
+    }
+
+    public function setSite(?Site $site): static
+    {
+        $this->site = $site;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Fault>
      */
@@ -206,6 +226,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
+    /** @return Collection<int, Notification> */
+    public function getNotifications(): Collection
+    {
+        return $this->notifications;
+    }
+
     public function __toString(): string
 {
     return $this->fullName ?? $this->email ?? 'User #' . $this->id;

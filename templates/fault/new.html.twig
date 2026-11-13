@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Déclarer une panne{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
+        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Déclarer une panne</h1>
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}<p class="rtn-flash rtn-flash-{{ label }}">{{ message }}</p>{% endfor %}
+        {% endfor %}
+        <form method="post" class="rtn-form">
+            <input type="hidden" name="fault[_token]" value="{{ csrf_token('fault_declare') }}">
+            <div class="rtn-form-grid">
+            <label class="rtn-form-field">Machine
+                <select name="fault[machine]" id="rtn-fault-machine" required>
+                    <option value="">Sélectionner</option>
+                    {% for machine in machines %}<option value="{{ machine.id }}" {% if data.machine|default('') == machine.id %}selected{% endif %}>{{ machine.machineModel.code }} — {{ machine }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Module
+                <select name="fault[module]">
+                    <option value="">Aucun</option>
+                    {% for module in modules %}<option value="{{ module.id }}">{{ module.machineModel.code }} — {{ module }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Pièce
+                <select name="fault[part]">
+                    <option value="">Aucune</option>
+                    {% for part in parts %}<option value="{{ part.id }}">{{ part.module.machineModel.code }} — {{ part }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Symptôme
+                <select name="fault[symptom]" required>
+                    {% for symptom, knowledge in symptoms %}<option value="{{ symptom }}">{{ symptom }}</option>{% endfor %}
+                    <option value="autre">Autre</option>
+                </select>
+            </label>
+            <label class="rtn-form-field">Gravité
+                <select name="fault[severity]" required>
+                    <option value="faible">Faible</option><option value="moyenne">Moyenne</option><option value="critique">Critique</option>
+                </select>
+            </label>
+            <label class="rtn-form-field rtn-form-field-full">Description
+                <textarea name="fault[description]" required>{{ data.description|default('') }}</textarea>
+            </label>
+            </div>
+            <button class="rtn-button" type="submit">Déclarer la panne</button>
+        </form>
+        <aside id="rtn-troubleshooting" class="rtn-troubleshooting" hidden>
+            <h2>Causes et solutions du manuel</h2>
+            <h3>Causes</h3><ul id="rtn-causes"></ul>
+            <h3>Solutions</h3><ul id="rtn-solutions"></ul>
+        </aside>
+        <div class="rtn-safety"><h2>Règles de sécurité</h2>
+        <p>Couper et verrouiller les alimentations pneumatique et électrique avant toute intervention. Personnel qualifié uniquement. Utiliser des pièces originales ou validées par ROLTECH.</p>
+        </div>
+    </section>
+</main>
+<script>
+const rtnTroubleshooting = {{ symptoms|json_encode|raw }};
+const rtnSymptomSelect = document.querySelector('select[name="fault[symptom]"]');
+const rtnPanel = document.getElementById('rtn-troubleshooting');
+const rtnCauses = document.getElementById('rtn-causes');
+const rtnSolutions = document.getElementById('rtn-solutions');
+const rtnMachineSelect = document.getElementById('rtn-fault-machine');
+if (rtnMachineSelect) {
+    rtnMachineSelect.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('machine', rtnMachineSelect.value);
+        window.location.assign(url);
+    });
+}
+function rtnRenderTroubleshooting() {
+    const knowledge = rtnTroubleshooting[rtnSymptomSelect.value];
+    rtnCauses.replaceChildren();
+    rtnSolutions.replaceChildren();
+    if (!knowledge) { rtnPanel.hidden = true; return; }
+    knowledge.causes.forEach((cause) => { const item = document.createElement('li'); item.textContent = cause; rtnCauses.append(item); });
+    knowledge.solutions.forEach((solution) => { const item = document.createElement('li'); item.textContent = solution; rtnSolutions.append(item); });
+    rtnPanel.hidden = false;
+}
+rtnSymptomSelect.addEventListener('change', rtnRenderTroubleshooting);
+rtnRenderTroubleshooting();
+</script>
+{% endblock %}

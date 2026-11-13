@@ -36,6 +36,15 @@ class Fault
     #[ORM\JoinColumn(nullable: false)]
     private ?User $reportedBy = null;
 
+    #[ORM\ManyToOne]
+    private ?MachineModule $module = null;
+
+    #[ORM\ManyToOne]
+    private ?Part $part = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $symptom = null;
+
     /**
      * @var Collection<int, Intervention>
      */
@@ -120,6 +129,42 @@ class Fault
     public function setReportedBy(?User $reportedBy): static
     {
         $this->reportedBy = $reportedBy;
+
+        return $this;
+    }
+
+    public function getModule(): ?MachineModule
+    {
+        return $this->module;
+    }
+
+    public function setModule(?MachineModule $module): static
+    {
+        $this->module = $module;
+
+        return $this;
+    }
+
+    public function getPart(): ?Part
+    {
+        return $this->part;
+    }
+
+    public function setPart(?Part $part): static
+    {
+        $this->part = $part;
+
+        return $this;
+    }
+
+    public function getSymptom(): ?string
+    {
+        return $this->symptom;
+    }
+
+    public function setSymptom(?string $symptom): static
+    {
+        $this->symptom = $symptom;
 
         return $this;
     }

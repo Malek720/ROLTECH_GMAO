@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Espace Technicien{% endblock %}
+
+{% block body %}
+<main class="rtn-dashboard">
+    <header class="rtn-dashboard-header">
+        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Technicien</h1></div>
+        <nav><a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a href="{{ path('notifications') }}" data-turbo="false">Notifications</a><a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+    </header>
+    <section class="rtn-dashboard-card">
+        <h2>Mes interventions</h2>
+        {% for intervention in interventions %}
+            <article class="rtn-dashboard-item">
+                <div>
+                    <strong>{{ intervention.type|capitalize }} — {{ intervention.fault ? intervention.fault.machine : intervention.schedule.machine }}</strong>
+                    <span>{{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</span>
+                </div>
+                <span class="rtn-pill rtn-pill-{{ intervention.status|replace({' ': '-'}) }}">{{ intervention.status|capitalize }}</span>
+            </article>
+        {% else %}<p>Aucune intervention affectée.</p>{% endfor %}
+    </section>
+    <section class="rtn-dashboard-card">
+        <h2>Mes notifications</h2>
+        {% for notification in notifications|slice(0, 6) %}
+            <article class="rtn-dashboard-item {% if notification.readAt is null %}rtn-unread{% endif %}">
+                <div><strong>{{ notification.type|capitalize }}</strong><span>{{ notification.message }}</span></div>
+                <small>{{ notification.createdAt|date('d/m/Y H:i') }}</small>
+            </article>
+        {% else %}<p>Aucune notification.</p>{% endfor %}
+        <a class="rtn-dashboard-link" href="{{ path('notifications') }}" data-turbo="false">Voir toutes les notifications</a>
+    </section>
+</main>
+{% endblock %}

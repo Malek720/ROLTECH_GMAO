@@ -16,6 +16,16 @@ class MachineRepository extends ServiceEntityRepository
         parent::__construct($registry, Machine::class);
     }
 
+    /** @return list<Machine> */
+    public function findForSite(?\App\Entity\Site $site): array
+    {
+        if ($site === null) {
+            return [];
+        }
+
+        return $this->findBy(['site' => $site], ['status' => 'ASC', 'name' => 'ASC']);
+    }
+
     //    /**
     //     * @return Machine[] Returns an array of Machine objects
     //     */

@@ -1,14 +1,6 @@
-{# templates/admin/field/badge.html.twig
-   Expects: field.value (the raw string), field.customOptions.badgeMap (array) #}
-
 {% set raw = field.value %}
 {% set map = field.customOptions.get('badgeMap', {}) %}
-{% set entry = map[raw] ?? { icon: 'fa-circle', color: '#4c566a', label: raw } %}
-
-<span class="rtn-badge" style="--rtn-badge-color: {{ entry.color }};">
-    <span class="rtn-badge-icon"><i class="fa {{ entry.icon }}"></i></span>
-    {{ entry.label }}
-</span>
+{% include 'components/status_badge.html.twig' with { status: raw, custom: map } only %}
 
 <style>
     .rtn-badge {

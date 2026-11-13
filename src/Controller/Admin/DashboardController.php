@@ -6,6 +6,13 @@ use App\Controller\Admin\UserCrudController;
 use App\Controller\Admin\MachineCrudController;
 use App\Controller\Admin\FaultCrudController;
 use App\Controller\Admin\InterventionCrudController;
+use App\Controller\Admin\SiteCrudController;
+use App\Controller\Admin\MachineModuleCrudController;
+use App\Controller\Admin\PartCrudController;
+use App\Controller\Admin\MaintenanceTaskCrudController;
+use App\Controller\Admin\MaintenanceScheduleCrudController;
+use App\Controller\Admin\NotificationCrudController;
+use App\Controller\Admin\MachineModelCrudController;
 use App\Repository\MachineRepository;
 use App\Repository\FaultRepository;
 use App\Repository\InterventionRepository;
@@ -78,5 +85,13 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(MachineCrudController::class, 'Machines', 'fa fa-gears');
         yield MenuItem::linkTo(FaultCrudController::class, 'Faults', 'fa fa-triangle-exclamation');
         yield MenuItem::linkTo(InterventionCrudController::class, 'Interventions', 'fa fa-wrench');
+        yield MenuItem::linkTo(SiteCrudController::class, 'Sites', 'fa fa-location-dot');
+        yield MenuItem::linkTo(MachineModelCrudController::class, 'Modèles', 'fa fa-boxes-stacked');
+        yield MenuItem::linkTo(MachineModuleCrudController::class, 'Modules', 'fa fa-sitemap');
+        yield MenuItem::linkTo(PartCrudController::class, 'Pièces', 'fa fa-cubes');
+        yield MenuItem::linkTo(MaintenanceTaskCrudController::class, 'Tâches de maintenance', 'fa fa-list-check');
+        yield MenuItem::linkTo(MaintenanceScheduleCrudController::class, 'Plannings', 'fa fa-calendar-check');
+        yield MenuItem::linkTo(NotificationCrudController::class, 'Notifications', 'fa fa-bell');
+        yield MenuItem::linkToRoute('Plan de maintenance', 'fa fa-calendar-days', 'admin_maintenance_plan');
     }
 }

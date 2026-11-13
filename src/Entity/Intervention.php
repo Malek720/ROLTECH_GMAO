@@ -4,9 +4,14 @@ namespace App\Entity;
 
 use App\Repository\InterventionRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Event\PrePersistEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: InterventionRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Intervention
 {
     #[ORM\Id]
@@ -29,13 +34,22 @@ class Intervention
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $comment = null;
 
+    #[ORM\Column(length: 30)]
+    private string $assignmentSource = 'systeme';
+
+    #[ORM\ManyToOne]
+    private ?User $assignedBy = null;
+
     #[ORM\ManyToOne(inversedBy: 'interventions')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Fault $fault = null;
 
     #[ORM\ManyToOne(inversedBy: 'interventions')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?User $technician = null;
+
+    #[ORM\ManyToOne(inversedBy: 'interventions')]
+    private ?MaintenanceSchedule $schedule = null;
 
     public function getId(): ?int
     {
@@ -102,6 +116,30 @@ class Intervention
         return $this;
     }
 
+    public function getAssignmentSource(): string
+    {
+        return $this->assignmentSource;
+    }
+
+    public function setAssignmentSource(string $assignmentSource): static
+    {
+        $this->assignmentSource = $assignmentSource;
+
+        return $this;
+    }
+
+    public function getAssignedBy(): ?User
+    {
+        return $this->assignedBy;
+    }
+
+    public function setAssignedBy(?User $assignedBy): static
+    {
+        $this->assignedBy = $assignedBy;
+
+        return $this;
+    }
+
     public function getFault(): ?Fault
     {
         return $this->fault;
@@ -124,5 +162,60 @@ class Intervention
         $this->technician = $technician;
 
         return $this;
+    }
+
+    public function getSchedule(): ?MaintenanceSchedule
+    {
+        return $this->schedule;
+    }
+
+    public function setSchedule(?MaintenanceSchedule $schedule): static
+    {
+        $this->schedule = $schedule;
+
+        return $this;
+    }
+
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function validateSourceLifecycle(PrePersistEventArgs|PreUpdateEventArgs $event): void
+    {
+        $this->assertValidSource();
+    }
+
+    #[Assert\Callback]
+    public function validateSource(?ExecutionContextInterface $context = null): void
+    {
+        if (!$this->hasInvalidSource()) {
+            return;
+        }
+
+        $message = 'Sélectionnez soit une panne, soit un planning, mais pas les deux.';
+        if ($context !== null) {
+            $context->buildViolation($message)
+                ->atPath('fault')
+                ->addViolation();
+
+            return;
+        }
+
+        $this->assertValidSource();
+    }
+
+    private function hasInvalidSource(): bool
+    {
+        return ($this->fault === null) === ($this->schedule === null);
+    }
+
+    private function assertValidSource(): void
+    {
+        if ($this->hasInvalidSource()) {
+            throw new \InvalidArgumentException('Une intervention doit être liée à une panne ou à un planning, mais pas aux deux.');
+        }
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('%s — %s', $this->type ?? 'Intervention', $this->startDate?->format('d/m/Y') ?? '');
     }
 }

@@ -1,0 +1,11 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+{% block content_title %}Importer le catalogue de {{ model.code }}{% endblock %}
+{% block main %}
+<form method="post" enctype="multipart/form-data" class="rtn-form">
+    <input type="hidden" name="_token" value="{{ csrfToken }}">
+    <label>Fichier CSV (UTF-8, 1 Mo maximum)
+        <input required type="file" name="catalogue" accept=".csv,text/csv">
+    </label>
+    <button class="btn btn-primary" type="submit">Prévisualiser</button>
+</form>
+{% endblock %}

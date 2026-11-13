@@ -1,0 +1,6 @@
+{% if module.parts|length %}
+<ul>{% for part in module.parts %}<li>{{ part.partNumber ?: 'référence à confirmer' }} — {{ part.description }} {% include 'components/status_badge.html.twig' with {status: part.dataStatus} only %}</li>{% endfor %}</ul>
+{% endif %}
+{% if module.children|length %}
+<ul>{% for child in module.children %}<li>{{ child.code }} — {{ child.name }} {% include 'components/status_badge.html.twig' with {status: child.dataStatus} only %}{% include 'admin/model/_module_tree.html.twig' with {module: child} only %}</li>{% endfor %}</ul>
+{% endif %}

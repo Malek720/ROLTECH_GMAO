@@ -31,6 +31,9 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/faults, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/notifications, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/maintenance-plan, roles: ROLE_RESPONSABLE }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/responsable, roles: ROLE_RESPONSABLE }
         - { path: ^/technicien, roles: ROLE_TECHNICIEN }

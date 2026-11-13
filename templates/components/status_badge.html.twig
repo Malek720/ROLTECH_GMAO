@@ -1,0 +1,28 @@
+{% set status = status|default('') %}
+{% set defaults = {
+    'en service': { icon: 'fa-circle-check', color: '#a3be8c', label: 'En service' },
+    'en panne': { icon: 'fa-triangle-exclamation', color: '#bf616a', label: 'En panne' },
+    'en maintenance': { icon: 'fa-screwdriver-wrench', color: '#d08770', label: 'En maintenance' },
+    'critique': { icon: 'fa-circle-exclamation', color: '#bf616a', label: 'Critique' },
+    'moyenne': { icon: 'fa-triangle-exclamation', color: '#d08770', label: 'Moyenne' },
+    'faible': { icon: 'fa-circle-info', color: '#5e81ac', label: 'Faible' },
+    'planifiee': { icon: 'fa-calendar-plus', color: '#5e81ac', label: 'Planifiée' },
+    'en cours': { icon: 'fa-person-running', color: '#d08770', label: 'En cours' },
+    'terminee': { icon: 'fa-circle-check', color: '#a3be8c', label: 'Terminée' },
+    'ok': { icon: 'fa-circle-check', color: '#a3be8c', label: 'OK' },
+    'proche': { icon: 'fa-clock', color: '#ebcb8b', label: 'Proche' },
+    'echue': { icon: 'fa-circle-exclamation', color: '#bf616a', label: 'Échue' },
+    'confirmed': { icon: 'fa-shield-check', color: '#5e81ac', label: 'Données confirmées' },
+    'demo': { icon: 'fa-flask', color: '#b48ead', label: 'Données de démonstration' }
+} %}
+{% set custom = custom|default({}) %}
+{% set entry = custom[status] ?? defaults[status] ?? { icon: 'fa-circle-question', color: '#4c566a', label: status } %}
+<span class="rtn-badge" style="--rtn-badge-color: {{ entry.color }};">
+    <span class="rtn-badge-icon"><i class="fa {{ entry.icon }}"></i></span>
+    {{ entry.label }}
+</span>
+<style>
+    .rtn-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: color-mix(in srgb, var(--rtn-badge-color) 16%, white); color: var(--rtn-badge-color); }
+    .ea-dark-scheme .rtn-badge { background: color-mix(in srgb, var(--rtn-badge-color) 28%, #2e3440); color: color-mix(in srgb, var(--rtn-badge-color) 70%, white); }
+    .rtn-badge-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--rtn-badge-color); color: white; font-size: 12px; flex-shrink: 0; }
+</style>

@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
+        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Notifications</h1>
+        {% if notifications is empty %}
+            <p>Aucune notification.</p>
+        {% else %}
+            {% for notification in notifications %}
+                <article class="rtn-notification {% if notification.readAt is null %}rtn-notification-unread{% endif %}">
+                    <strong>{{ notification.type|capitalize }}</strong>
+                    <p>{{ notification.message }}</p>
+                    <small>{{ notification.createdAt|date('d/m/Y H:i') }}</small>
+                    {% if notification.readAt is null %}
+                        <form method="post" action="{{ path('notification_read', {id: notification.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('notification_read_' ~ notification.id) }}">
+                            <button type="submit">Marquer comme lue</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

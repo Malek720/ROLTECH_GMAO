@@ -9,6 +9,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 
 class UserCrudController extends AbstractCrudController
 {
@@ -24,6 +25,7 @@ class UserCrudController extends AbstractCrudController
 
             EmailField::new('email', 'Email'),
             TextField::new('fullName', 'Nom complet'),
+            AssociationField::new('site', 'Site')->setRequired(false),
 
             // Read-only badge display on index/detail pages
             ArrayField::new('roles', 'Rôle')

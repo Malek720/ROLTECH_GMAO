@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Fiche {{ machine.serialNumber }}{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('fault_new') }}">Déclarer une panne</a>
+        <a href="{{ path('notifications') }}">Notifications</a>
+        <a href="{{ path('app_logout') }}">Se déconnecter</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Fiche machine</h1>
+        <dl class="rtn-fiche-grid">
+            <dt>SERIAL #</dt><dd>{{ machine.serialNumber }}</dd>
+            <dt>Modèle</dt><dd>{{ machine.machineModel }}</dd>
+            <dt>Site</dt><dd>{{ machine.site }}</dd>
+            <dt>Zone</dt><dd>{{ machine.location ?: 'Non renseignée' }}</dd>
+            <dt>Statut</dt><dd>{{ machine.status }}</dd>
+            <dt>Heures de fonctionnement</dt><dd>{{ machine.operatingHours|number_format(0, ',', ' ') }} h</dd>
+        </dl>
+    </section>
+    <section class="rtn-card">
+        <h2>Modules et pièces</h2>
+        {% for module in modules %}
+            <article class="rtn-list-item">
+                <strong>{{ module.code }} — {{ module.name }}</strong>
+                <small>Planche {{ module.planche }}{% if module.parent %} · Sous-module de {{ module.parent.code }}{% endif %}</small>
+                <ul>
+                    {% for part in module.parts %}
+                        <li>{{ part.partNumber }} — {{ part.description }}{% if part.quantity is not null %} ({{ part.quantity }}){% endif %}</li>
+                    {% else %}<li>Aucune pièce renseignée.</li>{% endfor %}
+                </ul>
+            </article>
+        {% else %}<p>Aucun module pour ce modèle.</p>{% endfor %}
+    </section>
+    <section class="rtn-card">
+        <h2>Historique de maintenance</h2>
+        {% for schedule in maintenanceHistory %}
+            <article class="rtn-list-item"><strong>{{ schedule.task }}</strong><span>Dernière réalisation : {{ schedule.lastDoneDate|date('d/m/Y') }}</span><small>{{ schedule.lastDoneHours }} h</small></article>
+        {% else %}<p>Aucune maintenance terminée.</p>{% endfor %}
+    </section>
+    <section class="rtn-card">
+        <h2>Pannes ouvertes</h2>
+        {% for fault in openFaults %}
+            <article class="rtn-list-item"><strong>{{ fault.symptom ?: 'Autre' }}</strong><span>{{ fault.description }}</span><small>{{ fault.severity }}</small></article>
+        {% else %}<p>Aucune panne ouverte.</p>{% endfor %}
+    </section>
+    <section class="rtn-card">
+        <h2>Tâches à venir ou échues</h2>
+        {% for schedule in upcomingSchedules %}
+            <article class="rtn-list-item"><strong>{{ schedule.task }}</strong><span>{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span><small>{{ schedule.state }}</small></article>
+        {% else %}<p>Aucune tâche proche ou échue.</p>{% endfor %}
+    </section>
+</main>
+{% endblock %}

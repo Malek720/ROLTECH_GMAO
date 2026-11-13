@@ -19,8 +19,9 @@ class Machine
     #[ORM\Column(length: 255)]
     private ?string $name = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $model = null;
+    #[ORM\ManyToOne(inversedBy: 'machines')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?MachineModel $machineModel = null;
 
     #[ORM\Column(length: 255)]
     private ?string $serialNumber = null;
@@ -37,15 +38,26 @@ class Machine
     #[ORM\Column(length: 255)]
     private ?string $status = null;
 
+    #[ORM\Column]
+    private int $operatingHoursCorrection = 0;
+
+    #[ORM\ManyToOne(inversedBy: 'machines')]
+    private ?Site $site = null;
+
     /**
      * @var Collection<int, Fault>
      */
     #[ORM\OneToMany(targetEntity: Fault::class, mappedBy: 'machine', orphanRemoval: true)]
     private Collection $faults;
 
+    /** @var Collection<int, MaintenanceSchedule> */
+    #[ORM\OneToMany(targetEntity: MaintenanceSchedule::class, mappedBy: 'machine', orphanRemoval: true)]
+    private Collection $maintenanceSchedules;
+
     public function __construct()
     {
         $this->faults = new ArrayCollection();
+        $this->maintenanceSchedules = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -65,14 +77,14 @@ class Machine
         return $this;
     }
 
-    public function getModel(): ?string
+    public function getMachineModel(): ?MachineModel
     {
-        return $this->model;
+        return $this->machineModel;
     }
 
-    public function setModel(string $model): static
+    public function setMachineModel(MachineModel $machineModel): static
     {
-        $this->model = $model;
+        $this->machineModel = $machineModel;
 
         return $this;
     }
@@ -137,6 +149,42 @@ class Machine
         return $this;
     }
 
+    public function getOperatingHoursCorrection(): int
+    {
+        return $this->operatingHoursCorrection;
+    }
+
+    public function setOperatingHoursCorrection(int $operatingHoursCorrection): static
+    {
+        $this->operatingHoursCorrection = $operatingHoursCorrection;
+
+        return $this;
+    }
+
+    public function getOperatingHours(?\DateTime $asOf = null): int
+    {
+        if ($this->installationDate === null) {
+            return $this->operatingHoursCorrection;
+        }
+
+        $asOf ??= new \DateTime();
+        $seconds = $asOf->getTimestamp() - $this->installationDate->getTimestamp();
+
+        return max(0, (int) floor($seconds / 3600) + $this->operatingHoursCorrection);
+    }
+
+    public function getSite(): ?Site
+    {
+        return $this->site;
+    }
+
+    public function setSite(?Site $site): static
+    {
+        $this->site = $site;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Fault>
      */
@@ -166,6 +214,13 @@ class Machine
 
         return $this;
     }
+
+    /** @return Collection<int, MaintenanceSchedule> */
+    public function getMaintenanceSchedules(): Collection
+    {
+        return $this->maintenanceSchedules;
+    }
+
     public function __toString(): string
 {
     return $this->name ?? 'Machine #' . $this->id;

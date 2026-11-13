@@ -6,6 +6,8 @@ use App\Repository\FaultRepository;
 use App\Repository\InterventionRepository;
 use App\Repository\MachineRepository;
 use App\Repository\UserRepository;
+use App\Repository\MaintenanceScheduleRepository;
+use App\Repository\SiteRepository;
 
 class AdminStatsProvider
 {
@@ -14,6 +16,8 @@ class AdminStatsProvider
         private FaultRepository $faultRepository,
         private InterventionRepository $interventionRepository,
         private UserRepository $userRepository,
+        private MaintenanceScheduleRepository $maintenanceScheduleRepository,
+        private SiteRepository $siteRepository,
     ) {
     }
 
@@ -24,6 +28,20 @@ class AdminStatsProvider
             'faults' => $this->faultStats(),
             'interventions' => $this->interventionStats(),
             'users' => $this->userStats(),
+            'maintenance' => $this->maintenanceStats(),
+            'sites' => ['total' => $this->siteRepository->count([])],
+        ];
+    }
+
+    private function maintenanceStats(): array
+    {
+        $schedules = array_values(array_filter(
+            $this->maintenanceScheduleRepository->findAll(),
+            static fn ($schedule): bool => $schedule->getArchivedAt() === null
+        ));
+
+        return [
+            'byState' => $this->countBy($schedules, fn ($schedule) => $schedule->getState()),
         ];
     }
 

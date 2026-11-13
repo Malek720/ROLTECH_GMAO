@@ -1,0 +1,18 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+{% block content_title %}Aperçu de l’import — {{ model.code }}{% endblock %}
+{% block main %}
+<p>Créations : {{ preview.counts.create }} · Mises à jour : {{ preview.counts.update }} · Lignes ignorées : {{ preview.counts.skip }}</p>
+{% if preview.warning %}<div class="alert alert-warning">{{ preview.warning }}</div>{% endif %}
+{% if preview.errors %}
+    <div class="alert alert-danger">L’import contient des erreurs bloquantes.</div>
+    <table class="table"><thead><tr><th>Ligne</th><th>Colonne</th><th>Message</th></tr></thead><tbody>
+    {% for error in preview.errors %}<tr><td>{{ error.line }}</td><td>{{ error.column }}</td><td>{{ error.message }}</td></tr>{% endfor %}
+    </tbody></table>
+{% else %}
+    <form method="post" action="{{ path('admin_model_import_confirm', {id: model.id}) }}">
+        <input type="hidden" name="_token" value="{{ csrfToken }}">
+        <input type="hidden" name="nonce" value="{{ nonce }}">
+        <button class="btn btn-primary" type="submit">Confirmer l’import</button>
+    </form>
+{% endif %}
+{% endblock %}

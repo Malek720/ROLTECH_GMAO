@@ -51,6 +51,34 @@ html.ea-dark-scheme {
     transition: transform var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out),
                 box-shadow var(--ea-duration-default, 240ms) var(--ea-ease-out, ease-out);
 }
+
+.rtn-plan-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.rtn-plan-filter select, .rtn-plan-filter button {
+    padding: 8px 12px;
+}
+.rtn-plan-table {
+    border: 1px solid var(--table-cell-border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.rtn-plan-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr 1.5fr 1fr 0.6fr;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--table-cell-border-color);
+}
+.rtn-plan-row:last-child { border-bottom: 0; }
+.rtn-plan-header { font-weight: 700; background: var(--content-panel-bg, var(--body-bg)); }
+.rtn-state { font-weight: 700; }
+.rtn-state-ok { color: #a3be8c; }
+.rtn-state-proche { color: #d08770; }
+.rtn-state-echue { color: #bf616a; }
 .rtn-stat-card:hover, .rtn-info-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);

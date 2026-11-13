@@ -16,6 +16,28 @@ class FaultRepository extends ServiceEntityRepository
         parent::__construct($registry, Fault::class);
     }
 
+    /** @return list<Fault> */
+    public function findToDispatch(?\App\Entity\Site $site): array
+    {
+        if ($site === null) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('f')
+            ->join('f.machine', 'm')->addSelect('m')
+            ->leftJoin('f.interventions', 'i', 'WITH', 'i.status IN (:openStatuses)')
+            ->andWhere('m.site = :site')
+            ->andWhere('f.status IN (:faultStatuses)')
+            ->andWhere('i.technician IS NULL')
+            ->setParameter('site', $site)
+            ->setParameter('openStatuses', ['planifiee', 'en cours'])
+            ->setParameter('faultStatuses', ['ouverte', 'en cours'])
+            ->orderBy('f.severity', 'ASC')
+            ->addOrderBy('f.reportedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Fault[] Returns an array of Fault objects
     //     */
