@@ -51,6 +51,27 @@ class FaultRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * KPI loader: every fault reported up to the end of the window, machine and model joined,
+     * in one query. Faults reported before the window still matter for availability when they
+     * are unresolved, so the window start is not applied here.
+     *
+     * @return list<Fault>
+     */
+    public function findReportedUpTo(\DateTimeInterface $until): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.machine', 'm')->addSelect('m')
+            ->leftJoin('m.site', 'site')->addSelect('site')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->andWhere('f.reportedAt <= :until')
+            ->setParameter('until', $until)
+            ->orderBy('f.reportedAt', 'ASC')
+            ->addOrderBy('f.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Fault[] Returns an array of Fault objects
     //     */

@@ -60,6 +60,27 @@ class InterventionRepository extends ServiceEntityRepository
         return $query->getQuery()->getResult();
     }
 
+    /**
+     * KPI loader: finished interventions whose endDate is not after the window end, fault joined,
+     * in one query. Used both for the per-fault resolution lookup and for the mean repair time.
+     *
+     * @return list<Intervention>
+     */
+    public function findFinishedUpTo(\DateTimeInterface $until): array
+    {
+        return $this->createQueryBuilder('i')
+            ->leftJoin('i.fault', 'f')->addSelect('f')
+            ->andWhere('i.status = :finished')
+            ->andWhere('i.endDate IS NOT NULL')
+            ->andWhere('i.endDate <= :until')
+            ->setParameter('finished', 'terminee')
+            ->setParameter('until', $until)
+            ->orderBy('i.endDate', 'ASC')
+            ->addOrderBy('i.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /** @return list<Intervention> */
     public function findForDispatch(): array
     {

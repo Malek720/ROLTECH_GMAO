@@ -2,6 +2,9 @@
 
 namespace App\Service;
 
+use App\Entity\Fault;
+use App\Entity\Intervention;
+use App\Entity\Machine;
 use App\Repository\FaultRepository;
 use App\Repository\InterventionRepository;
 use App\Repository\MachineRepository;
@@ -18,6 +21,7 @@ class AdminStatsProvider
         private UserRepository $userRepository,
         private MaintenanceScheduleRepository $maintenanceScheduleRepository,
         private SiteRepository $siteRepository,
+        private KpiCalculator $kpiCalculator,
     ) {
     }
 
@@ -31,6 +35,105 @@ class AdminStatsProvider
             'maintenance' => $this->maintenanceStats(),
             'sites' => ['total' => $this->siteRepository->count([])],
         ];
+    }
+
+    /**
+     * KPI report (phase 8). Loads machines, faults and finished interventions in three queries
+     * (no query per machine) and leaves every formula to {@see KpiCalculator}.
+     *
+     * @return array{window:array{from:string,to:string,isDefault:bool},availability:list<array<string,mixed>>,meanRepairTime:array{count:int,totalHours:float,meanHours:?float},faultsPerSite:list<array<string,mixed>>,faultsPerModel:list<array<string,mixed>>}
+     */
+    public function getKpiReport(?string $from = null, ?string $to = null): array
+    {
+        $window = $this->kpiCalculator->resolveWindow($from, $to);
+
+        $machines = $this->mapMachinesForKpi($this->machineRepository->findAllWithSiteAndModel());
+        $faults = $this->mapFaultsForKpi($this->faultRepository->findReportedUpTo($window['to']));
+        $interventions = $this->mapInterventionsForKpi($this->interventionRepository->findFinishedUpTo($window['to']));
+
+        $kpis = $this->kpiCalculator->compute($machines, $faults, $interventions, $window['from'], $window['to']);
+
+        return array_merge([
+            'window' => [
+                'from' => $window['from']->format('Y-m-d'),
+                'to' => $window['to']->format('Y-m-d'),
+                'isDefault' => $window['isDefault'],
+            ],
+        ], $kpis);
+    }
+
+    /**
+     * @param list<Machine> $machines
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function mapMachinesForKpi(array $machines): array
+    {
+        $rows = [];
+        foreach ($machines as $machine) {
+            $site = $machine->getSite();
+            $model = $machine->getMachineModel();
+            $rows[] = [
+                'id' => $machine->getId(),
+                'name' => $machine->getName() ?? '',
+                'siteId' => $site?->getId(),
+                'siteName' => $site?->getName(),
+                'modelCode' => $model?->getCode(),
+                'dataStatus' => $model?->getDataStatus() ?? 'demo',
+                'installationDate' => $this->toImmutable($machine->getInstallationDate()),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<Fault> $faults
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function mapFaultsForKpi(array $faults): array
+    {
+        $rows = [];
+        foreach ($faults as $fault) {
+            $rows[] = [
+                'id' => $fault->getId(),
+                'machineId' => $fault->getMachine()?->getId(),
+                'severity' => $fault->getSeverity() ?? '',
+                'status' => $fault->getStatus() ?? '',
+                'reportedAt' => $this->toImmutable($fault->getReportedAt()),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<Intervention> $interventions
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function mapInterventionsForKpi(array $interventions): array
+    {
+        $rows = [];
+        foreach ($interventions as $intervention) {
+            $rows[] = [
+                'id' => $intervention->getId(),
+                'faultId' => $intervention->getFault()?->getId(),
+                'type' => $intervention->getType() ?? '',
+                'status' => $intervention->getStatus() ?? '',
+                'startDate' => $this->toImmutable($intervention->getStartDate()),
+                'startedAt' => $this->toImmutable($intervention->getStartedAt()),
+                'endDate' => $this->toImmutable($intervention->getEndDate()),
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function toImmutable(?\DateTimeInterface $date): ?\DateTimeImmutable
+    {
+        return $date === null ? null : \DateTimeImmutable::createFromInterface($date);
     }
 
     private function maintenanceStats(): array

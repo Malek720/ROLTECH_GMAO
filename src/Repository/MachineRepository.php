@@ -33,6 +33,21 @@ class MachineRepository extends ServiceEntityRepository
         return $this->findBy([], ['status' => 'ASC', 'name' => 'ASC']);
     }
 
+    /**
+     * KPI loader: every machine with its site and model joined, in one query (no N+1).
+     *
+     * @return list<Machine>
+     */
+    public function findAllWithSiteAndModel(): array
+    {
+        return $this->createQueryBuilder('m')
+            ->leftJoin('m.site', 'site')->addSelect('site')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->orderBy('m.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /** @return list<Machine> */
     public function findVisibleForFaultDeclaration(User $user): array
     {

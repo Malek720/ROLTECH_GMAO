@@ -189,8 +189,7 @@ final class CatalogCsvService
             if (count($values) !== count(self::HEADER)) throw new \InvalidArgumentException(sprintf('La ligne %d ne contient pas le bon nombre de colonnes.', $offset + 2));
             $row = ['_line' => $offset + 2];
             foreach (self::HEADER as $index => $column) {
-                $value = trim((string) $values[$index]);
-                $row[$column] = strlen($value) > 1 && $value[0] === "'" && in_array($value[1], ['=', '+', '-', '@'], true) ? substr($value, 1) : $value;
+                $row[$column] = CsvCellEscaper::unescape(trim((string) $values[$index]));
             }
             $rows[] = $row;
         }
@@ -199,10 +198,7 @@ final class CatalogCsvService
 
     private function write($handle, array $values): void
     {
-        fputcsv($handle, array_map(static function ($value): string {
-            $value = (string) ($value ?? '');
-            return $value !== '' && in_array($value[0], ['=', '+', '-', '@'], true) ? "'".$value : $value;
-        }, $values), ';');
+        fputcsv($handle, array_map([CsvCellEscaper::class, 'escape'], $values), ';');
     }
 
     private function findExisting(array $row, MachineModel $model): MachineModule|Part|MaintenanceTask|null
