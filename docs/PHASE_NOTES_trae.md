@@ -120,3 +120,76 @@ no migration, no new dependency.
 - Results are capped at 20 per type with no pagination, and there is no test for that cap or for a term that
   matches more than 20 rows.
 
+## Chunk 8d — login redirect and QR code
+
+No schema change, no migration. One new dependency (the QR library), see below. This is the last chunk of the
+phase 8 spec.
+
+### Login redirect
+
+`src/Security/RoleBasedAuthenticationSuccessHandler.php` now uses `TargetPathTrait` and returns the user to the
+page they wanted before being sent to the login form, but only when that saved path is safe:
+
+- accepted: a relative path of this site starting with a single `/` (e.g. `/indicateurs`);
+- rejected (falls back to the role dashboard): an empty string, a value not starting with `/`, a
+  protocol-relative URL (`//evil.example`), anything containing `://` (an absolute URL), and the paths `/login`
+  and `/logout` (never bounce back to the authentication endpoints).
+- The saved path is read once and removed from the session in the same call, so it can never be replayed.
+- The fallback is unchanged: `ROLE_ADMIN` → `admin`, `ROLE_RESPONSABLE` → `responsable_dashboard`,
+  `ROLE_TECHNICIEN` → `technicien_dashboard`, otherwise `app_login`. The role picker stays cosmetic (rule 1).
+- The firewall name is injected by Symfony through `setFirewallName()` (the security bundle wraps the handler in
+  `CustomAuthenticationSuccessHandler`). Without it the handler cannot read the session key
+  `_security.<firewall>.target_path` and goes straight back to the role dashboard.
+
+Tests — `tests/Functional/LoginRedirectTest.php` (drives the real login form: GET `/login` for the session-bound
+CSRF token, then POST `/login_check`):
+
+- `testValidSavedTargetPathIsUsedOnce` — a valid saved path is used and then consumed.
+- `testProtocolRelativeTargetPathIsIgnored` — `//evil.example` → role dashboard.
+- `testAbsoluteTargetPathIsIgnored` — `https://evil.example` → role dashboard.
+- `testLogoutTargetPathIsIgnored` — `/logout` → role dashboard.
+- `testNoSavedTargetPathKeepsRoleDashboard` — no saved path keeps today's behaviour.
+
+### QR code
+
+- Library: `chillerlan/php-qrcode` **5.0.5** (MIT), installed with `composer require chillerlan/php-qrcode:^5.0`.
+  It pulls `chillerlan/php-settings-container` 3.3.0; on disk ~318 KiB (67 files). SVG output, no GD extension.
+  `composer audit` reports 23 advisories affecting 14 packages, **all pre-existing** Symfony/EasyAdmin ones;
+  none concerns chillerlan.
+- `src/Service/QrCodeService.php`: `faultDeclarationUrl(int $machineId)` returns
+  `rtrim(DEFAULT_URI, '/') . <route fault_new generated with ?machine=<id>>`; `faultDeclarationSvg()` renders it
+  with `QROutputInterface::MARKUP_SVG`, `outputBase64 = false` (raw SVG, not a base64 data URI) and
+  `svgAddXmlHeader = false` (an XML prolog is invalid inline in an HTML document). The base comes from
+  `#[Autowire('%env(DEFAULT_URI)%')]`.
+- `config/packages/framework.yaml`: `framework.router.default_uri: '%env(DEFAULT_URI)%'`. `.env` documents the
+  default `DEFAULT_URI=http://127.0.0.1:8000`. The real deployment value goes in `.env.local` (not created or
+  edited here): `DEFAULT_URI=https://<hôte réel>`.
+- `templates/machine/fiche.html.twig`: the QR is rendered server-side inside `.rtn-qr`, the encoded URL is shown
+  as text (`.rtn-qr-url`) and exposed on the container (`data-qr-url`); a `{% block stylesheets %}` adds the
+  `rtn-` styles plus an `@media print` block that hides the chrome, switches to black on white and shows a print
+  title with the machine name and serial number.
+- Access is unchanged: the fiche keeps `#[IsGranted('ROLE_RESPONSABLE')]`, so the QR is visible only to roles
+  that could already open the fiche (technicien → 403). No route was added in this chunk.
+
+Tests — `tests/Functional/MachineFicheQrTest.php`:
+
+- `testFicheRendersTheQrCodeOfTheFaultDeclarationUrl` — the rendered URL contains the machine id and the
+  configured base (`router.request_context.base_url`), appears as text and on `data-qr-url`, and an inline
+  `<svg>` sits in the QR container.
+- `testTechnicienCannotObtainTheQrCode` — a technicien gets 403 on the fiche (access rule not weakened).
+
+### New routes and roles (chunk 8d)
+
+Chunk 8d adds no route: it reuses the existing `fault_new` (`GET /faults/new?machine=<id>`). Phase-8 routes:
+`/indicateurs` + `/indicateurs.csv` (ROLE_RESPONSABLE) and `/recherche` (any authenticated user).
+
+### Phase 8 requirements with no test (rule 39)
+
+- Login redirect: no test for the `/login` rejection branch specifically (only `/logout` is pinned), nor for a
+  saved path carrying a query string / `parse_url` edge cases.
+- QR: no test decodes the produced SVG back to the URL (only its structure and the URL text are asserted); no
+  test proves that a non-default `DEFAULT_URI` from `.env.local` is honoured (the test env uses the documented
+  default); the `@media print` stylesheet has no automated test (CSS).
+- KPI / search: no test for the 20-results-per-type cap or for a term matching more than 20 rows; Chart.js runs
+  in the browser only (no chart test).
+

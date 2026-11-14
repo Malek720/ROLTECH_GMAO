@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Machine;
 use App\Repository\MachineModuleRepository;
+use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ final class MachineFicheController extends AbstractController
         Machine $machine,
         MachineModuleRepository $moduleRepository,
         EntityManagerInterface $entityManager,
+        QrCodeService $qrCodeService,
     ): Response
     {
         $errors = [];
@@ -75,6 +77,8 @@ final class MachineFicheController extends AbstractController
             'maintenanceHistory' => $machine->getMaintenanceSchedules()->filter(static fn ($schedule): bool => $schedule->getArchivedAt() === null && $schedule->getInterventions()->exists(static fn ($key, $intervention): bool => $intervention->getStatus() === 'terminee')),
             'timeline' => $timeline,
             'errors' => $errors,
+            'qrUrl' => $qrCodeService->faultDeclarationUrl((int) $machine->getId()),
+            'qrSvg' => $qrCodeService->faultDeclarationSvg((int) $machine->getId()),
         ]);
         if ($request->isMethod('POST') && $errors !== []) {
             $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);

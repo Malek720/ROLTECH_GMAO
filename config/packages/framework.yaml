@@ -5,6 +5,12 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Base URL used when generating absolute URLs outside a web request (CLI
+    # commands) and by the machine fiche QR code. The real value is set in
+    # .env.local; the documented default is http://127.0.0.1:8000.
+    router:
+        default_uri: '%env(DEFAULT_URI)%'
+
     #esi: true
     #fragments: true
 

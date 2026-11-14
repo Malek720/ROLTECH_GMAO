@@ -2,6 +2,28 @@
 
 {% block title %}Fiche {{ machine.serialNumber }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .rtn-qr { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 220px; align-items: start; margin: 0 0 20px; padding: 18px; border: 1px solid #3b465c; border-radius: 12px; background: #1b2435; }
+        .rtn-qr-code { justify-self: end; }
+        .rtn-qr-code svg { width: 190px; height: 190px; display: block; background: #fff; padding: 8px; border-radius: 8px; }
+        .rtn-qr-caption { margin: 0 0 6px; color: #d8dee9; }
+        .rtn-qr-url { margin: 0; font-family: monospace; word-break: break-all; color: #88c0d0; }
+        .rtn-qr-print-title { display: none; }
+        @media (max-width: 700px) { .rtn-qr { grid-template-columns: 1fr; } .rtn-qr-code { justify-self: start; } }
+        @media print {
+            /* Only the useful information is printed: the machine identity and its QR code. */
+            .rtn-bell, .rtn-global-search, .rtn-dashboard-actions, .rtn-fiche-edit-form, .rtn-toasts { display: none !important; }
+            .rtn-page, .rtn-card, .rtn-qr { background: #fff !important; color: #000 !important; box-shadow: none !important; border-color: #999 !important; }
+            .rtn-qr { grid-template-columns: minmax(0, 1fr) 200px; }
+            .rtn-qr-code svg { background: #fff; padding: 0; }
+            .rtn-qr-print-title { display: block; grid-column: 1 / -1; margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: #000; }
+            .rtn-qr-url { color: #000; }
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 <main class="rtn-page rtn-responsable-page">
     <header class="rtn-dashboard-header">
@@ -21,6 +43,15 @@
             <dt>Zone</dt><dd>{{ machine.location ?: 'Non renseignée' }}</dd>
             <dt>Heures de fonctionnement</dt><dd>{{ machine.operatingHours|number_format(0, ',', ' ') }} h</dd>
         </dl>
+        <div class="rtn-qr">
+            <p class="rtn-qr-print-title">Fiche machine — {{ machine.name }} · N° de série {{ machine.serialNumber }}</p>
+            <div>
+                <p class="rtn-eyebrow">Déclaration de panne</p>
+                <p class="rtn-qr-caption">Scannez ce code avec un téléphone pour ouvrir la déclaration de panne de cette machine.</p>
+                <p class="rtn-qr-url">{{ qrUrl }}</p>
+            </div>
+            <div class="rtn-qr-code" data-qr-url="{{ qrUrl }}">{{ qrSvg|raw }}</div>
+        </div>
         <form method="post" class="rtn-form rtn-form-grid rtn-fiche-edit-form">
             <input type="hidden" name="_token" value="{{ csrf_token('machine_edit_' ~ machine.id) }}">
             <label class="rtn-form-field">Numéro de série<input name="serial_number" value="{{ machine.serialNumber }}" required>{% if errors.serial_number|default(null) %}<span class="rtn-field-error">{{ errors.serial_number }}</span>{% endif %}</label>
