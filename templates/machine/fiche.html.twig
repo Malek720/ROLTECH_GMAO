@@ -3,54 +3,73 @@
 {% block title %}Fiche {{ machine.serialNumber }}{% endblock %}
 
 {% block body %}
-<main class="rtn-page">
-    <nav class="rtn-nav">
-        <a href="{{ path('fault_new') }}">Déclarer une panne</a>
-        <a href="{{ path('notifications') }}">Notifications</a>
-        <a href="{{ path('app_logout') }}">Se déconnecter</a>
-    </nav>
+<main class="rtn-page rtn-responsable-page">
+    <header class="rtn-dashboard-header">
+        <div><p class="rtn-eyebrow">{{ machine.site }} · {{ machine.location ?: 'Zone non renseignée' }}</p><h1>{{ machine.name }}</h1></div>
+        <nav class="rtn-dashboard-actions">
+            <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('responsable_manual_intervention', {id: machine.id}) }}" data-turbo="false">Nouvelle intervention</a>
+        </nav>
+    </header>
     <section class="rtn-card">
-        <h1>Fiche machine</h1>
-        <dl class="rtn-fiche-grid">
-            <dt>SERIAL #</dt><dd>{{ machine.serialNumber }}</dd>
-            <dt>Modèle</dt><dd>{{ machine.machineModel }}</dd>
+        <div class="rtn-page-heading"><div><p class="rtn-eyebrow">Fiche machine</p><h2>{{ machine.machineModel.name }}</h2></div>{% include 'components/status_badge.html.twig' with {status: machine.machineModel.dataStatus} only %}</div>
+        <dl class="rtn-detail-list">
+            <dt>Modèle</dt><dd>{{ machine.machineModel.code }} — {{ machine.machineModel.name }}</dd>
+            <dt>Charge maximale</dt><dd>{{ machine.machineModel.maxLoadKg is not null ? machine.machineModel.maxLoadKg ~ ' kg' : 'charge max. à confirmer' }}</dd>
+            <dt>Numéro de série</dt><dd>{{ machine.serialNumber }}</dd>
             <dt>Site</dt><dd>{{ machine.site }}</dd>
             <dt>Zone</dt><dd>{{ machine.location ?: 'Non renseignée' }}</dd>
-            <dt>Statut</dt><dd>{{ machine.status }}</dd>
             <dt>Heures de fonctionnement</dt><dd>{{ machine.operatingHours|number_format(0, ',', ' ') }} h</dd>
         </dl>
+        <form method="post" class="rtn-form rtn-form-grid rtn-fiche-edit-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('machine_edit_' ~ machine.id) }}">
+            <label class="rtn-form-field">Numéro de série<input name="serial_number" value="{{ machine.serialNumber }}" required>{% if errors.serial_number|default(null) %}<span class="rtn-field-error">{{ errors.serial_number }}</span>{% endif %}</label>
+            <label class="rtn-form-field">Zone<input name="location" value="{{ machine.location }}"></label>
+            <label class="rtn-form-field">Statut<select name="status" required><option value="en service" {% if machine.status == 'en service' %}selected{% endif %}>En service</option><option value="en panne" {% if machine.status == 'en panne' %}selected{% endif %}>En panne</option><option value="en maintenance" {% if machine.status == 'en maintenance' %}selected{% endif %}>En maintenance</option></select>{% if errors.status|default(null) %}<span class="rtn-field-error">{{ errors.status }}</span>{% endif %}</label>
+            <button class="rtn-button rtn-button-large" type="submit">Enregistrer la fiche</button>
+        </form>
     </section>
+
     <section class="rtn-card">
         <h2>Modules et pièces</h2>
-        {% for module in modules %}
-            <article class="rtn-list-item">
-                <strong>{{ module.code }} — {{ module.name }}</strong>
-                <small>Planche {{ module.planche }}{% if module.parent %} · Sous-module de {{ module.parent.code }}{% endif %}</small>
-                <ul>
-                    {% for part in module.parts %}
-                        <li>{{ part.partNumber }} — {{ part.description }}{% if part.quantity is not null %} ({{ part.quantity }}){% endif %}</li>
-                    {% else %}<li>Aucune pièce renseignée.</li>{% endfor %}
-                </ul>
+        <div class="rtn-module-grid">
+            {% for module in modules %}
+                <article class="rtn-module-card">
+                    <div class="rtn-page-heading"><strong>{{ module.code }} — {{ module.name }}</strong>{% include 'components/status_badge.html.twig' with {status: module.dataStatus} only %}</div>
+                    <small>Planche {{ module.planche }}{% if module.parent %} · Sous-module de {{ module.parent.code }}{% endif %}</small>
+                    <ul>{% for part in module.parts %}<li>{{ part.partNumber ?: 'référence à confirmer' }} — {{ part.description }}{% include 'components/status_badge.html.twig' with {status: part.dataStatus} only %}</li>{% else %}<li>Aucune pièce renseignée.</li>{% endfor %}</ul>
+                </article>
+            {% else %}<p>Aucun module pour ce modèle.</p>{% endfor %}
+        </div>
+    </section>
+
+    <section class="rtn-card">
+        <h2>Pannes</h2>
+        {% for fault in machine.faults|sort((a, b) => b.reportedAt <=> a.reportedAt) %}
+            <article class="rtn-dashboard-item">
+                <div><strong>{{ fault.symptom ?: 'Autre' }} — {{ fault.description }}</strong><span>{{ fault.reportedAt|date('d/m/Y H:i') }} · {% include 'components/status_badge.html.twig' with {status: fault.severity} only %} {% include 'components/status_badge.html.twig' with {status: fault.status} only %}</span></div>
+                <div class="rtn-inline-actions">
+                    {% if fault.status != 'resolue' %}<form method="post" action="{{ path('responsable_fault_close', {id: fault.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('responsable_fault_close_' ~ fault.id) }}"><button class="rtn-button" type="submit">Clôturer</button></form>{% else %}<form method="post" action="{{ path('responsable_fault_reopen', {id: fault.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('responsable_fault_reopen_' ~ fault.id) }}"><input name="reason" required placeholder="Raison de réouverture"><button class="rtn-button rtn-button-secondary" type="submit">Réouvrir</button></form>{% endif %}
+                </div>
             </article>
-        {% else %}<p>Aucun module pour ce modèle.</p>{% endfor %}
+        {% else %}<p>Aucune panne.</p>{% endfor %}
     </section>
+
     <section class="rtn-card">
-        <h2>Historique de maintenance</h2>
-        {% for schedule in maintenanceHistory %}
-            <article class="rtn-list-item"><strong>{{ schedule.task }}</strong><span>Dernière réalisation : {{ schedule.lastDoneDate|date('d/m/Y') }}</span><small>{{ schedule.lastDoneHours }} h</small></article>
-        {% else %}<p>Aucune maintenance terminée.</p>{% endfor %}
-    </section>
-    <section class="rtn-card">
-        <h2>Pannes ouvertes</h2>
-        {% for fault in openFaults %}
-            <article class="rtn-list-item"><strong>{{ fault.symptom ?: 'Autre' }}</strong><span>{{ fault.description }}</span><small>{{ fault.severity }}</small></article>
-        {% else %}<p>Aucune panne ouverte.</p>{% endfor %}
-    </section>
-    <section class="rtn-card">
-        <h2>Tâches à venir ou échues</h2>
+        <h2>Planning actif</h2>
         {% for schedule in upcomingSchedules %}
-            <article class="rtn-list-item"><strong>{{ schedule.task }}</strong><span>{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span><small>{{ schedule.state }}</small></article>
-        {% else %}<p>Aucune tâche proche ou échue.</p>{% endfor %}
+            <article class="rtn-dashboard-item">
+                <div><strong>{{ schedule.task.action }}</strong><span>Échéance : {{ schedule.nextDueDate|date('d/m/Y') }} · {{ schedule.nextDueHours }} h</span></div>
+                <div class="rtn-inline-actions">{% include 'components/status_badge.html.twig' with {status: schedule.state} only %}{% if schedule.state == 'echue' %}<form method="post" action="{{ path('responsable_schedule_postpone', {id: schedule.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('responsable_schedule_postpone_' ~ schedule.id) }}"><input type="date" name="new_date" required><input name="reason" required placeholder="Raison"><button class="rtn-button" type="submit">Reporter</button></form>{% endif %}</div>
+            </article>
+        {% else %}<p>Aucun planning actif.</p>{% endfor %}
+    </section>
+
+    <section class="rtn-card">
+        <h2>Chronologie</h2>
+        <ol class="rtn-timeline">
+            {% for event in timeline %}<li><time>{{ event.date|date('d/m/Y H:i') }}</time><div><strong>{{ event.kind }}</strong><span>{{ event.label }}</span>{% include 'components/status_badge.html.twig' with {status: event.status} only %}</div></li>{% else %}<li>Aucun événement enregistré.</li>{% endfor %}
+        </ol>
     </section>
 </main>
 {% endblock %}

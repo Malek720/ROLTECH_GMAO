@@ -9,7 +9,15 @@
         <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
     </nav>
     <section class="rtn-card">
-        <h1>Notifications</h1>
+        <div class="rtn-page-heading">
+            <h1>Notifications</h1>
+            {% if notifications|filter(notification => notification.readAt is null) is not empty %}
+                <form method="post" action="{{ path('notifications_read_all') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('notifications_read_all') }}">
+                    <button class="rtn-button rtn-button-large" type="submit">Tout marquer comme lu</button>
+                </form>
+            {% endif %}
+        </div>
         {% if notifications is empty %}
             <p>Aucune notification.</p>
         {% else %}
@@ -18,6 +26,11 @@
                     <strong>{{ notification.type|capitalize }}</strong>
                     <p>{{ notification.message }}</p>
                     <small>{{ notification.createdAt|date('d/m/Y H:i') }}</small>
+                    {% if notification.intervention %}
+                        <a class="rtn-touch-link" href="{{ path('intervention_show', {id: notification.intervention.id}) }}" data-turbo="false">Ouvrir l’intervention</a>
+                    {% elseif notification.fault %}
+                        <a class="rtn-touch-link" href="{{ path('fault_confirmation', {id: notification.fault.id}) }}" data-turbo="false">Ouvrir la panne</a>
+                    {% endif %}
                     {% if notification.readAt is null %}
                         <form method="post" action="{{ path('notification_read', {id: notification.id}) }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('notification_read_' ~ notification.id) }}">

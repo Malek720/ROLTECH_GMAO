@@ -5,13 +5,13 @@
 {% block body %}
 <main class="rtn-dashboard">
     <header class="rtn-dashboard-header">
-        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Responsable{% if site %} — {{ site.name }}{% endif %}</h1></div>
-        <nav><a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Responsable{% if site %} — {{ site.name }}{% else %} — Tous les sites{% endif %}</h1></div>
+        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
     </header>
     <section class="rtn-dashboard-grid">
         <div class="rtn-dashboard-card"><h2>À dispatcher</h2><strong class="rtn-dashboard-number">{{ faultsToDispatch|length }}</strong><p>pannes sans technicien affecté</p></div>
         <div class="rtn-dashboard-card"><h2>Maintenance échue</h2><strong class="rtn-dashboard-number">{{ overdueSchedules|length }}</strong><p>tâches à traiter</p></div>
-        <div class="rtn-dashboard-card"><h2>Machines du site</h2><strong class="rtn-dashboard-number">{{ machines|length }}</strong><p>machines suivies</p></div>
+        <div class="rtn-dashboard-card"><h2>Machines visibles</h2><strong class="rtn-dashboard-number">{{ machines|length }}</strong><p>machines suivies sur tous les sites</p></div>
     </section>
     <section class="rtn-dashboard-card">
         <h2>Machines par statut</h2>

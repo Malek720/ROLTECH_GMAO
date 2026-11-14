@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\InterventionRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
@@ -28,6 +30,15 @@ class Intervention
     #[ORM\Column(nullable: true)]
     private ?\DateTime $endDate = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTime $startedAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTime $lockoutConfirmedAt = null;
+
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $checklistProgress = null;
+
     #[ORM\Column(length: 255)]
     private ?string $status = null;
 
@@ -50,6 +61,15 @@ class Intervention
 
     #[ORM\ManyToOne(inversedBy: 'interventions')]
     private ?MaintenanceSchedule $schedule = null;
+
+    /** @var Collection<int, InterventionPart> */
+    #[ORM\OneToMany(targetEntity: InterventionPart::class, mappedBy: 'intervention', orphanRemoval: true)]
+    private Collection $parts;
+
+    public function __construct()
+    {
+        $this->parts = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -90,6 +110,53 @@ class Intervention
         $this->endDate = $endDate;
 
         return $this;
+    }
+
+    public function getStartedAt(): ?\DateTime
+    {
+        return $this->startedAt;
+    }
+
+    public function setStartedAt(?\DateTime $startedAt): static
+    {
+        $this->startedAt = $startedAt;
+
+        return $this;
+    }
+
+    public function getLockoutConfirmedAt(): ?\DateTime
+    {
+        return $this->lockoutConfirmedAt;
+    }
+
+    public function setLockoutConfirmedAt(?\DateTime $lockoutConfirmedAt): static
+    {
+        $this->lockoutConfirmedAt = $lockoutConfirmedAt;
+
+        return $this;
+    }
+
+    /** @return array<int|string, mixed> */
+    public function getChecklistProgress(): array
+    {
+        return $this->checklistProgress ?? [];
+    }
+
+    /** @param array<int|string, mixed> $checklistProgress */
+    public function setChecklistProgress(?array $checklistProgress): static
+    {
+        $this->checklistProgress = $checklistProgress;
+
+        return $this;
+    }
+
+    public function getDurationMinutes(): ?int
+    {
+        if ($this->startedAt === null || $this->endDate === null) {
+            return null;
+        }
+
+        return max(0, (int) floor(($this->endDate->getTimestamp() - $this->startedAt->getTimestamp()) / 60));
     }
 
     public function getStatus(): ?string
@@ -172,6 +239,31 @@ class Intervention
     public function setSchedule(?MaintenanceSchedule $schedule): static
     {
         $this->schedule = $schedule;
+
+        return $this;
+    }
+
+    /** @return Collection<int, InterventionPart> */
+    public function getParts(): Collection
+    {
+        return $this->parts;
+    }
+
+    public function addPart(InterventionPart $part): static
+    {
+        if (!$this->parts->contains($part)) {
+            $this->parts->add($part);
+            $part->setIntervention($this);
+        }
+
+        return $this;
+    }
+
+    public function removePart(InterventionPart $part): static
+    {
+        if ($this->parts->removeElement($part) && $part->getIntervention() === $this) {
+            $part->setIntervention(null);
+        }
 
         return $this;
     }

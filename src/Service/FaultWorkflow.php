@@ -9,6 +9,7 @@ use App\Entity\MachineModule;
 use App\Entity\Notification;
 use App\Entity\Part;
 use App\Entity\User;
+use App\Repository\FaultRepository;
 use App\Repository\InterventionRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +37,7 @@ final class FaultWorkflow
     ];
 
     public function __construct(
+        private FaultRepository $faultRepository,
         private InterventionRepository $interventionRepository,
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
@@ -56,7 +58,15 @@ final class FaultWorkflow
         string $symptom,
         string $description,
         string $severity,
+        ?string $submissionToken = null,
     ): Fault {
+        if ($submissionToken !== null) {
+            $existingFault = $this->faultRepository->findOneBy(['submissionToken' => $submissionToken]);
+            if ($existingFault instanceof Fault) {
+                return $existingFault;
+            }
+        }
+
         if ($symptom !== 'autre' && !array_key_exists($symptom, self::SYMPTOMS)) {
             throw new InvalidArgumentException('Le symptôme sélectionné est invalide.');
         }
@@ -82,7 +92,8 @@ final class FaultWorkflow
             ->setSeverity($severity)
             ->setStatus('ouverte')
             ->setModule($module)
-            ->setPart($part);
+            ->setPart($part)
+            ->setSubmissionToken($submissionToken);
         if ($severity === 'critique') {
             $machine->setStatus('en panne');
         }

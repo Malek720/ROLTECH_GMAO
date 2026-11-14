@@ -44,15 +44,52 @@ class InterventionRepository extends ServiceEntityRepository
     }
 
     /** @return list<Intervention> */
-    public function findForTechnician(\App\Entity\User $technician): array
+    public function findForTechnician(\App\Entity\User $technician, ?string $status = null): array
     {
-        return $this->createQueryBuilder('i')
+        $query = $this->createQueryBuilder('i')
             ->leftJoin('i.fault', 'f')->addSelect('f')
             ->leftJoin('i.schedule', 's')->addSelect('s')
             ->andWhere('i.technician = :technician')
             ->setParameter('technician', $technician)
             ->orderBy('i.status', 'ASC')
-            ->addOrderBy('i.startDate', 'DESC')
+            ->addOrderBy('i.startDate', 'DESC');
+        if ($status !== null) {
+            $query->andWhere('i.status = :status')->setParameter('status', $status);
+        }
+
+        return $query->getQuery()->getResult();
+    }
+
+    /** @return list<Intervention> */
+    public function findForDispatch(): array
+    {
+        return $this->createQueryBuilder('i')
+            ->leftJoin('i.fault', 'f')->addSelect('f')
+            ->leftJoin('i.schedule', 's')->addSelect('s')
+            ->leftJoin('f.machine', 'fm')->addSelect('fm')
+            ->leftJoin('s.machine', 'sm')->addSelect('sm')
+            ->andWhere('i.status = :planned')
+            ->setParameter('planned', 'planifiee')
+            ->addOrderBy("CASE WHEN f.severity = 'critique' THEN 0 WHEN f.severity = 'moyenne' THEN 1 ELSE 2 END", 'ASC')
+            ->addOrderBy('i.startDate', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return list<Intervention> */
+    public function findForDispatchBySite(\App\Entity\Site $site): array
+    {
+        return $this->createQueryBuilder('i')
+            ->leftJoin('i.fault', 'f')->addSelect('f')
+            ->leftJoin('i.schedule', 's')->addSelect('s')
+            ->leftJoin('f.machine', 'fm')
+            ->leftJoin('s.machine', 'sm')
+            ->andWhere('(fm.site = :site OR sm.site = :site)')
+            ->andWhere('i.status = :planned')
+            ->setParameter('site', $site)
+            ->setParameter('planned', 'planifiee')
+            ->addOrderBy("CASE WHEN f.severity = 'critique' THEN 0 WHEN f.severity = 'moyenne' THEN 1 ELSE 2 END", 'ASC')
+            ->addOrderBy('i.startDate', 'ASC')
             ->getQuery()
             ->getResult();
     }

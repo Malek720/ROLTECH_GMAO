@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Machine;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -24,6 +25,35 @@ class MachineRepository extends ServiceEntityRepository
         }
 
         return $this->findBy(['site' => $site], ['status' => 'ASC', 'name' => 'ASC']);
+    }
+
+    /** @return list<Machine> */
+    public function findAllOrdered(): array
+    {
+        return $this->findBy([], ['status' => 'ASC', 'name' => 'ASC']);
+    }
+
+    /** @return list<Machine> */
+    public function findVisibleForFaultDeclaration(User $user): array
+    {
+        if (in_array('ROLE_ADMIN', $user->getRoles(), true) || in_array('ROLE_RESPONSABLE', $user->getRoles(), true)) {
+        return $this->createQueryBuilder('m')
+            ->join('m.site', 'site')->addSelect('site')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->orderBy('site.name', 'ASC')
+            ->addOrderBy('m.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+        }
+
+        return $this->createQueryBuilder('m')
+        ->join('m.site', 'site')->addSelect('site')
+        ->join('m.machineModel', 'model')->addSelect('model')
+        ->andWhere('m.site = :site')
+        ->setParameter('site', $user->getSite())
+        ->orderBy('m.name', 'ASC')
+        ->getQuery()
+        ->getResult();
     }
 
     //    /**

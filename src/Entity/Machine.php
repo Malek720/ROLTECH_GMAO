@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MachineRepository::class)]
+#[ORM\UniqueConstraint(name: 'UNIQ_MACHINE_SERIAL_NUMBER', fields: ['serialNumber'])]
 class Machine
 {
     #[ORM\Id]

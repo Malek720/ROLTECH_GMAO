@@ -38,6 +38,24 @@ final class NotificationController extends AbstractController
         return $this->redirectToRoute('notifications');
     }
 
+    #[Route('/read-all', name: 'notifications_read_all', methods: ['POST'])]
+    public function readAll(Request $request, NotificationRepository $repository, EntityManagerInterface $entityManager): Response
+    {
+        $user = $this->getUserOrFail();
+        if (!$this->isCsrfTokenValid('notifications_read_all', (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+        foreach ($repository->findForUser($user) as $notification) {
+            if ($notification->getReadAt() === null) {
+                $notification->setReadAt(new \DateTime());
+            }
+        }
+        $entityManager->flush();
+        $this->addFlash('success', 'Toutes les notifications sont marquées comme lues.');
+
+        return $this->redirectToRoute('notifications');
+    }
+
     private function getUserOrFail(): User
     {
         $user = $this->getUser();

@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dispatch des interventions{% endblock %}
+
+{% block body %}
+<main class="rtn-page rtn-responsable-page">
+    <header class="rtn-dashboard-header">
+        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Dispatch des interventions</h1></div>
+        <nav class="rtn-dashboard-actions">
+            <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
+        </nav>
+    </header>
+    <section class="rtn-card">
+        <p class="rtn-form-help">Les interventions sont classées par gravité puis par ancienneté. Les techniciens proposés appartiennent au site de la machine.</p>
+        <div class="rtn-dispatch-list">
+            {% for intervention in interventions %}
+                {% set machine = intervention.fault ? intervention.fault.machine : intervention.schedule.machine %}
+                <article class="rtn-dispatch-card">
+                    <div class="rtn-page-heading">
+                        <div>
+                            <p class="rtn-eyebrow">{{ machine.site.name }} · {{ intervention.type|capitalize }}</p>
+                            <h2>{{ machine }}</h2>
+                            <p>{{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</p>
+                        </div>
+                        {% include 'components/status_badge.html.twig' with {status: intervention.fault ? intervention.fault.severity : 'proche'} only %}
+                    </div>
+                    <p class="rtn-dispatch-meta">Créée le {{ intervention.startDate|date('d/m/Y H:i') }} · {% if intervention.technician %}Affectée à {{ intervention.technician.fullName }}{% else %}Non affectée{% endif %}</p>
+                    <form method="post" action="{{ path('responsable_dispatch_assign', {id: intervention.id}) }}" class="rtn-dispatch-form">
+                        <input type="hidden" name="_token" value="{{ csrf_token('responsable_assign_' ~ intervention.id) }}">
+                        <label class="rtn-form-field">Technicien
+                            <select name="technician" required>
+                                <option value="">Choisir un technicien</option>
+                                {% for candidate in techniciansByIntervention[intervention.id]|default([]) %}
+                                    <option value="{{ candidate.technician.id }}" {% if intervention.technician and intervention.technician.id == candidate.technician.id %}selected{% endif %}>{{ candidate.technician.fullName }} — {{ candidate.openCount }} ouverte(s)</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <button class="rtn-button rtn-button-large" type="submit">{% if intervention.technician %}Réaffecter{% else %}Affecter{% endif %}</button>
+                    </form>
+                </article>
+            {% else %}
+                <p>Aucune intervention planifiée à dispatcher.</p>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

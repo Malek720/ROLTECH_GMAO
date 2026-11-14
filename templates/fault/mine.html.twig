@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes pannes déclarées{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
+        <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
+        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Mes pannes déclarées</h1>
+        {% for fault in faults %}
+            <article class="rtn-dashboard-item">
+                <div>
+                    <strong>{{ fault.machine }} — {{ fault.machine.machineModel.code }}</strong>
+                    <span>{{ fault.reportedAt|date('d/m/Y H:i') }} · {{ fault.description }}</span>
+                </div>
+                <span class="rtn-status-grid">
+                    {% include 'components/status_badge.html.twig' with {status: fault.status} only %}
+                    {% include 'components/status_badge.html.twig' with {status: fault.severity} only %}
+                    <a href="{{ path('fault_confirmation', {id: fault.id}) }}">Voir</a>
+                </span>
+            </article>
+        {% else %}
+            <p>Aucune panne déclarée.</p>
+        {% endfor %}
+    </section>
+</main>
+{% endblock %}

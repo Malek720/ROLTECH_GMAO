@@ -10,6 +10,7 @@ use App\Entity\Part;
 use App\Entity\Site;
 use App\Entity\User;
 use App\Repository\InterventionRepository;
+use App\Repository\FaultRepository;
 use App\Repository\UserRepository;
 use App\Service\FaultWorkflow;
 use Doctrine\ORM\EntityManagerInterface;
@@ -26,6 +27,7 @@ final class MultiModelCatalogTest extends TestCase
             ->setCategory('Demo')->setStatus('en service');
         $module = (new MachineModule())->setCode('M1')->setName('Module')->setPlanche('M1')->setMachineModel($otherModel);
         $workflow = new FaultWorkflow(
+            $this->createMock(FaultRepository::class),
             $this->createMock(InterventionRepository::class),
             $this->createMock(UserRepository::class),
             $this->createMock(EntityManagerInterface::class),

@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes interventions{% endblock %}
+
+{% block body %}
+<main class="rtn-page rtn-technician-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('technicien_dashboard') }}" data-turbo="false">Tableau de bord</a>
+        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
+        <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Mes interventions</h1>
+        <nav class="rtn-filter-nav" aria-label="Filtrer les interventions">
+            <a class="rtn-touch-link {% if selectedStatus == '' %}rtn-filter-active{% endif %}" href="{{ path('interventions_mine') }}" data-turbo="false">Toutes</a>
+            <a class="rtn-touch-link {% if selectedStatus == 'planifiee' %}rtn-filter-active{% endif %}" href="{{ path('interventions_mine', {status: 'planifiee'}) }}" data-turbo="false">Planifiées</a>
+            <a class="rtn-touch-link {% if selectedStatus == 'en cours' %}rtn-filter-active{% endif %}" href="{{ path('interventions_mine', {status: 'en cours'}) }}" data-turbo="false">En cours</a>
+            <a class="rtn-touch-link {% if selectedStatus == 'terminee' %}rtn-filter-active{% endif %}" href="{{ path('interventions_mine', {status: 'terminee'}) }}" data-turbo="false">Terminées</a>
+        </nav>
+        <div class="rtn-mobile-list">
+            {% for intervention in interventions %}
+                {% set machine = intervention.fault ? intervention.fault.machine : intervention.schedule.machine %}
+                <a class="rtn-mobile-list-item" href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">
+                    <strong>{{ machine }}</strong>
+                    <span>{{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</span>
+                    <span>{% include 'components/status_badge.html.twig' with {status: intervention.status} only %}</span>
+                </a>
+            {% else %}
+                <p>Aucune intervention pour ce filtre.</p>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

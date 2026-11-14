@@ -6,50 +6,65 @@
 <main class="rtn-page">
     <nav class="rtn-nav">
         <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
+        <a href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes déclarées</a>
         <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
     </nav>
     <section class="rtn-card">
         <h1>Déclarer une panne</h1>
-        {% for label, messages in app.flashes %}
-            {% for message in messages %}<p class="rtn-flash rtn-flash-{{ label }}">{{ message }}</p>{% endfor %}
-        {% endfor %}
-        <form method="post" class="rtn-form">
+        {% if errors.form|default(false) %}<p class="rtn-field-error" role="alert">{{ errors.form }}</p>{% endif %}
+        <form method="post" class="rtn-form" data-turbo="false" id="rtn-fault-form">
             <input type="hidden" name="fault[_token]" value="{{ csrf_token('fault_declare') }}">
+            <input type="hidden" name="fault[_submission_token]" value="{{ data._submission_token }}">
             <div class="rtn-form-grid">
             <label class="rtn-form-field">Machine
                 <select name="fault[machine]" id="rtn-fault-machine" required>
                     <option value="">Sélectionner</option>
-                    {% for machine in machines %}<option value="{{ machine.id }}" {% if data.machine|default('') == machine.id %}selected{% endif %}>{{ machine.machineModel.code }} — {{ machine }}</option>{% endfor %}
+                    {% for group in machineGroups %}
+                        <optgroup label="{{ group.site }}">
+                            {% for machine in group.machines %}<option value="{{ machine.id }}" data-machine-model="{{ machine.machineModel.id }}" data-model-status="{{ machine.machineModel.dataStatus }}" {% if data.machine|default('') == machine.id %}selected{% endif %}>{{ machine.machineModel.code }} — {{ machine }}</option>{% endfor %}
+                        </optgroup>
+                    {% endfor %}
                 </select>
+                {% if errors.machine|default(false) %}<span class="rtn-field-error">{{ errors.machine }}</span>{% endif %}
+                <span id="rtn-machine-model-badges">
+                    {% for model in modelsById %}<span data-model-badge="{{ model.id }}" {% if selectedMachine is null or selectedMachine.machineModel.id != model.id %}hidden{% endif %}>{% include 'components/status_badge.html.twig' with {status: model.dataStatus} only %}</span>{% endfor %}
+                </span>
             </label>
             <label class="rtn-form-field">Module
                 <select name="fault[module]">
                     <option value="">Aucun</option>
-                    {% for module in modules %}<option value="{{ module.id }}">{{ module.machineModel.code }} — {{ module }}</option>{% endfor %}
+                    {% for module in allModules %}<option value="{{ module.id }}" data-machine-model="{{ module.machineModel.id }}" data-model-visible="{{ selectedMachine is null or selectedMachine.machineModel.id == module.machineModel.id ? 'true' : 'false' }}" {% if selectedMachine is not null and selectedMachine.machineModel.id != module.machineModel.id %}hidden{% endif %} {% if data.module|default('') == module.id %}selected{% endif %}>{{ module.machineModel.code }} — {{ module }}</option>{% endfor %}
                 </select>
+                {% if errors.module|default(false) %}<span class="rtn-field-error">{{ errors.module }}</span>{% endif %}
             </label>
             <label class="rtn-form-field">Pièce
                 <select name="fault[part]">
                     <option value="">Aucune</option>
-                    {% for part in parts %}<option value="{{ part.id }}">{{ part.module.machineModel.code }} — {{ part }}</option>{% endfor %}
+                    {% for part in allParts %}<option value="{{ part.id }}" data-module="{{ part.module.id }}" data-machine-model="{{ part.module.machineModel.id }}" data-model-visible="{{ selectedMachine is null or selectedMachine.machineModel.id == part.module.machineModel.id ? 'true' : 'false' }}" {% if selectedMachine is not null and selectedMachine.machineModel.id != part.module.machineModel.id %}hidden{% endif %} {% if data.part|default('') == part.id %}selected{% endif %}>{{ part.module.machineModel.code }} — {{ part }}</option>{% endfor %}
                 </select>
+                {% if errors.part|default(false) %}<span class="rtn-field-error">{{ errors.part }}</span>{% endif %}
             </label>
             <label class="rtn-form-field">Symptôme
                 <select name="fault[symptom]" required>
-                    {% for symptom, knowledge in symptoms %}<option value="{{ symptom }}">{{ symptom }}</option>{% endfor %}
-                    <option value="autre">Autre</option>
+                    {% for symptom, knowledge in symptoms %}<option value="{{ symptom }}" {% if data.symptom|default('') == symptom %}selected{% endif %}>{{ symptom }}</option>{% endfor %}
+                    <option value="autre" {% if data.symptom|default('') == 'autre' %}selected{% endif %}>Autre</option>
                 </select>
+                {% if errors.symptom|default(false) %}<span class="rtn-field-error">{{ errors.symptom }}</span>{% endif %}
             </label>
             <label class="rtn-form-field">Gravité
                 <select name="fault[severity]" required>
-                    <option value="faible">Faible</option><option value="moyenne">Moyenne</option><option value="critique">Critique</option>
+                    <option value="faible" {% if data.severity|default('faible') == 'faible' %}selected{% endif %}>Faible</option><option value="moyenne" {% if data.severity|default('') == 'moyenne' %}selected{% endif %}>Moyenne</option><option value="critique" {% if data.severity|default('') == 'critique' %}selected{% endif %}>Critique</option>
                 </select>
+                {% if errors.severity|default(false) %}<span class="rtn-field-error">{{ errors.severity }}</span>{% endif %}
             </label>
             <label class="rtn-form-field rtn-form-field-full">Description
                 <textarea name="fault[description]" required>{{ data.description|default('') }}</textarea>
+                {% if errors.description|default(false) %}<span class="rtn-field-error">{{ errors.description }}</span>{% endif %}
             </label>
             </div>
-            <button class="rtn-button" type="submit">Déclarer la panne</button>
+            {% if errors._token|default(false) %}<p class="rtn-field-error" role="alert">{{ errors._token }}</p>{% endif %}
+            {% if errors._submission_token|default(false) %}<p class="rtn-field-error" role="alert">{{ errors._submission_token }}</p>{% endif %}
+            <button class="rtn-button" type="submit" id="rtn-fault-submit">Déclarer la panne</button>
         </form>
         <aside id="rtn-troubleshooting" class="rtn-troubleshooting" hidden>
             <h2>Causes et solutions du manuel</h2>
@@ -68,12 +83,39 @@ const rtnPanel = document.getElementById('rtn-troubleshooting');
 const rtnCauses = document.getElementById('rtn-causes');
 const rtnSolutions = document.getElementById('rtn-solutions');
 const rtnMachineSelect = document.getElementById('rtn-fault-machine');
+const rtnFaultForm = document.getElementById('rtn-fault-form');
 if (rtnMachineSelect) {
-    rtnMachineSelect.addEventListener('change', () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('machine', rtnMachineSelect.value);
-        window.location.assign(url);
-    });
+    const rtnModuleSelect = document.querySelector('select[name="fault[module]"]');
+    const rtnPartSelect = document.querySelector('select[name="fault[part]"]');
+    const rtnFilterOptions = (select, attribute, value) => {
+        if (!select) return;
+        Array.from(select.options).forEach((option) => {
+            const visible = !option.value || option.dataset[attribute] === value;
+            option.hidden = !visible;
+            option.disabled = !visible;
+        });
+        if (select.selectedOptions[0]?.disabled) select.value = '';
+    };
+    const rtnRefreshCatalog = () => {
+        const model = rtnMachineSelect.selectedOptions[0]?.dataset.machineModel || '';
+        rtnFilterOptions(rtnModuleSelect, 'machineModel', model);
+        rtnFilterOptions(rtnPartSelect, 'module', rtnModuleSelect?.value || '');
+        document.querySelectorAll('[data-model-badge]').forEach((badge) => {
+            badge.hidden = badge.dataset.modelBadge !== model;
+        });
+    };
+    rtnMachineSelect.addEventListener('change', rtnRefreshCatalog);
+    rtnModuleSelect?.addEventListener('change', rtnRefreshCatalog);
+    rtnRefreshCatalog();
+}
+if (rtnFaultForm) {
+    rtnFaultForm.addEventListener('submit', () => {
+        const submitButton = document.getElementById('rtn-fault-submit');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Déclaration en cours…';
+        }
+    }, { once: true });
 }
 function rtnRenderTroubleshooting() {
     const knowledge = rtnTroubleshooting[rtnSymptomSelect.value];

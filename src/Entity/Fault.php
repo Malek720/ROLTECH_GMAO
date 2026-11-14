@@ -45,6 +45,9 @@ class Fault
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $symptom = null;
 
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $submissionToken = null;
+
     /**
      * @var Collection<int, Intervention>
      */
@@ -165,6 +168,18 @@ class Fault
     public function setSymptom(?string $symptom): static
     {
         $this->symptom = $symptom;
+
+        return $this;
+    }
+
+    public function getSubmissionToken(): ?string
+    {
+        return $this->submissionToken;
+    }
+
+    public function setSubmissionToken(?string $submissionToken): static
+    {
+        $this->submissionToken = $submissionToken;
 
         return $this;
     }

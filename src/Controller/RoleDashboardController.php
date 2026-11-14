@@ -38,8 +38,8 @@ class RoleDashboardController extends AbstractController
     public function responsable(): Response
     {
         $user = $this->getAuthenticatedUser();
-        $site = $user->getSite();
-        $machines = $this->machineRepository->findForSite($site);
+        $site = (in_array('ROLE_ADMIN', $user->getRoles(), true) || in_array('ROLE_RESPONSABLE', $user->getRoles(), true)) ? null : $user->getSite();
+        $machines = $site === null ? $this->machineRepository->findAllOrdered() : $this->machineRepository->findForSite($site);
         $machineCounts = [];
         foreach ($machines as $machine) {
             $status = $machine->getStatus() ?? 'Non défini';

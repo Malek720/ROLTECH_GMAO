@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Intervention{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('fault_confirmation', {id: intervention.fault.id}) }}" data-turbo="false">Retour à la panne</a>
+        <a href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes déclarées</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Intervention</h1>
+        <dl class="rtn-detail-list">
+            <dt>Type</dt><dd>{% include 'components/status_badge.html.twig' with {status: intervention.type} only %}</dd>
+            <dt>Statut</dt><dd>{% include 'components/status_badge.html.twig' with {status: intervention.status} only %}</dd>
+            <dt>Machine</dt><dd>{{ intervention.fault.machine }}</dd>
+            <dt>Technicien</dt><dd>{{ intervention.technician ? intervention.technician.fullName : 'En attente d’affectation' }}</dd>
+            <dt>Début prévu</dt><dd>{{ intervention.startDate|date('d/m/Y H:i') }}</dd>
+        </dl>
+        <div class="rtn-safety"><h2>Règles de sécurité</h2><p>Couper et verrouiller les alimentations pneumatique et électrique avant toute intervention. Personnel qualifié uniquement. Utiliser des pièces originales ou validées par ROLTECH.</p></div>
+    </section>
+</main>
+{% endblock %}

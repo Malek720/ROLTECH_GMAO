@@ -8,6 +8,7 @@ use App\Entity\Machine;
 use App\Entity\MachineModel;
 use App\Entity\Site;
 use App\Entity\User;
+use App\Repository\FaultRepository;
 use App\Repository\InterventionRepository;
 use App\Repository\UserRepository;
 use App\Service\FaultWorkflow;
@@ -27,6 +28,8 @@ final class FaultWorkflowTest extends TestCase
         $responsable = (new User())->setFullName('Responsable')->setRoles(['ROLE_RESPONSABLE'])->setSite($site);
         $technician = (new User())->setFullName('Technicien')->setRoles(['ROLE_TECHNICIEN'])->setSite($site);
 
+        $faultRepository = $this->createMock(FaultRepository::class);
+        $faultRepository->method('findOneBy')->willReturn(null);
         $interventionRepository = $this->createMock(InterventionRepository::class);
         $interventionRepository->method('countOpenForTechnician')->with($technician)->willReturn(0);
         $userRepository = $this->createMock(UserRepository::class);
@@ -38,7 +41,7 @@ final class FaultWorkflowTest extends TestCase
         );
         $entityManager->expects(self::once())->method('flush');
 
-        $fault = (new FaultWorkflow($interventionRepository, $userRepository, $entityManager))->declare(
+        $fault = (new FaultWorkflow($faultRepository, $interventionRepository, $userRepository, $entityManager))->declare(
             $reporter,
             $machine,
             null,
@@ -52,5 +55,36 @@ final class FaultWorkflowTest extends TestCase
         self::assertSame('ouverte', $fault->getStatus());
         self::assertCount(1, array_filter($persisted, static fn (object $entity): bool => $entity instanceof Intervention));
         self::assertCount(2, array_filter($persisted, static fn (object $entity): bool => $entity instanceof \App\Entity\Notification));
+    }
+
+    public function testSubmissionTokenReturnsExistingFaultWithoutDuplicatingRows(): void
+    {
+        $existing = new Fault();
+        $faultRepository = $this->createMock(FaultRepository::class);
+        $faultRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['submissionToken' => 'a1b2c3'])
+            ->willReturn($existing);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::never())->method('persist');
+        $entityManager->expects(self::never())->method('flush');
+
+        $result = (new FaultWorkflow(
+            $faultRepository,
+            $this->createMock(InterventionRepository::class),
+            $this->createMock(UserRepository::class),
+            $entityManager,
+        ))->declare(
+            new User(),
+            new Machine(),
+            null,
+            null,
+            'autre',
+            'Doublon de soumission',
+            'faible',
+            'a1b2c3',
+        );
+
+        self::assertSame($existing, $result);
     }
 }

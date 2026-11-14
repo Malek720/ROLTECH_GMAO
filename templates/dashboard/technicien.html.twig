@@ -6,8 +6,19 @@
 <main class="rtn-dashboard">
     <header class="rtn-dashboard-header">
         <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Technicien</h1></div>
-        <nav><a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a href="{{ path('notifications') }}" data-turbo="false">Notifications</a><a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+        <nav class="rtn-dashboard-actions">
+            <a class="rtn-button rtn-button-large" href="{{ path('interventions_mine') }}" data-turbo="false">Mes interventions</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
+            <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
+        </nav>
     </header>
+    <section class="rtn-dashboard-grid">
+        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('interventions_mine', {status: 'planifiee'}) }}" data-turbo="false"><strong>À démarrer</strong><span>{{ interventions|filter(i => i.status == 'planifiee')|length }}</span><small>Voir les interventions planifiées</small></a>
+        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('interventions_mine', {status: 'en cours'}) }}" data-turbo="false"><strong>En cours</strong><span>{{ interventions|filter(i => i.status == 'en cours')|length }}</span><small>Reprendre une intervention</small></a>
+        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('fault_new') }}" data-turbo="false"><strong>Nouvelle panne</strong><span>+</span><small>Déclarer un incident</small></a>
+    </section>
     <section class="rtn-dashboard-card">
         <h2>Mes interventions</h2>
         {% for intervention in interventions %}
@@ -16,9 +27,10 @@
                     <strong>{{ intervention.type|capitalize }} — {{ intervention.fault ? intervention.fault.machine : intervention.schedule.machine }}</strong>
                     <span>{{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</span>
                 </div>
-                <span class="rtn-pill rtn-pill-{{ intervention.status|replace({' ': '-'}) }}">{{ intervention.status|capitalize }}</span>
+                <a class="rtn-touch-link" href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">{% include 'components/status_badge.html.twig' with {status: intervention.status} only %}</a>
             </article>
         {% else %}<p>Aucune intervention affectée.</p>{% endfor %}
+        <a class="rtn-dashboard-link" href="{{ path('interventions_mine') }}" data-turbo="false">Voir toutes mes interventions</a>
     </section>
     <section class="rtn-dashboard-card">
         <h2>Mes notifications</h2>

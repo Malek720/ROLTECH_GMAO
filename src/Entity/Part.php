@@ -35,9 +35,14 @@ class Part
     #[ORM\OneToMany(targetEntity: MaintenanceTask::class, mappedBy: 'part')]
     private Collection $maintenanceTasks;
 
+    /** @var Collection<int, InterventionPart> */
+    #[ORM\OneToMany(targetEntity: InterventionPart::class, mappedBy: 'part')]
+    private Collection $interventionParts;
+
     public function __construct()
     {
         $this->maintenanceTasks = new ArrayCollection();
+        $this->interventionParts = new ArrayCollection();
     }
 
     public function getId(): ?int { return $this->id; }
@@ -54,6 +59,9 @@ class Part
 
     /** @return Collection<int, MaintenanceTask> */
     public function getMaintenanceTasks(): Collection { return $this->maintenanceTasks; }
+
+    /** @return Collection<int, InterventionPart> */
+    public function getInterventionParts(): Collection { return $this->interventionParts; }
 
     public function __toString(): string
     {

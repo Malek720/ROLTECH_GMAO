@@ -39,20 +39,31 @@ class MaintenanceScheduleRepository extends ServiceEntityRepository
     /** @return list<MaintenanceSchedule> */
     public function findOverdueForSite(?\App\Entity\Site $site): array
     {
-        if ($site === null) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('s')
+        $query = $this->createQueryBuilder('s')
             ->join('s.machine', 'm')->addSelect('m')
             ->join('s.task', 't')->addSelect('t')
-            ->andWhere('m.site = :site')
             ->andWhere('s.state = :state')
             ->andWhere('s.archivedAt IS NULL')
-            ->setParameter('site', $site)
             ->setParameter('state', 'echue')
-            ->orderBy('s.nextDueDate', 'ASC')
+            ->orderBy('s.nextDueDate', 'ASC');
+        if ($site === null) {
+            // No site predicate means an admin sees schedules from every site.
+        } else {
+            $query->andWhere('m.site = :site')->setParameter('site', $site);
+        }
+
+        return $query->getQuery()->getResult();
+    }
+
+    public function findActiveForMachineAndTask(\App\Entity\Machine $machine, \App\Entity\MaintenanceTask $task): ?MaintenanceSchedule
+    {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.machine = :machine')
+            ->andWhere('s.task = :task')
+            ->andWhere('s.archivedAt IS NULL')
+            ->setParameter('machine', $machine)
+            ->setParameter('task', $task)
             ->getQuery()
-            ->getResult();
+            ->getOneOrNullResult();
     }
 }

@@ -18,7 +18,9 @@
                 .rtn-dashboard-card h2,.rtn-card h2{color:#eceff4}.rtn-dashboard-card p,.rtn-card p,.rtn-card small{color:#d8dee9}
                 .rtn-bell{position:fixed;top:0;right:0;z-index:10;padding:8px 18px;background:#88c0d0;border-radius:0 0 0 8px;box-shadow:0 4px 14px #0006}.rtn-bell a{color:#020817;text-decoration:none}
                 .rtn-form{display:grid;gap:20px}.rtn-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}.rtn-form-field{display:grid;gap:8px;color:#eceff4;font-weight:600}.rtn-form-field-full{grid-column:1/-1}.rtn-form input,.rtn-form select,.rtn-form textarea{box-sizing:border-box;width:100%;padding:11px 12px;border:1px solid #4c566a;border-radius:8px;background:#1b2435;color:#eceff4;font:inherit}.rtn-form select{cursor:pointer}.rtn-form textarea{min-height:130px;resize:vertical}.rtn-form input:focus,.rtn-form select:focus,.rtn-form textarea:focus{outline:2px solid #88c0d0;outline-offset:1px}.rtn-button{justify-self:start;padding:11px 18px;border:0;border-radius:8px;background:#88c0d0;color:#020817;font-weight:700;cursor:pointer}.rtn-button:hover{background:#b9e6ef}.rtn-form-help{margin:0;color:#d8dee9;font-size:.92rem}.rtn-troubleshooting{padding:18px 20px;border:1px solid #4c566a;border-radius:10px;background:#1b2435}.rtn-troubleshooting h2{margin-top:0}.rtn-troubleshooting h3{color:#88c0d0}.rtn-safety{padding-top:8px;border-top:1px solid #3b465c}.rtn-safety h2{margin-bottom:8px}@media (max-width:700px){.rtn-page{padding:28px 16px 44px}.rtn-form-grid{grid-template-columns:1fr}.rtn-form-field-full{grid-column:auto}}
+                .rtn-field-error{margin:0;color:#ffb4ab;font-size:.9rem;font-weight:600}.rtn-form button:disabled{opacity:.65;cursor:wait}.rtn-toasts{position:fixed;right:20px;top:20px;z-index:20;display:grid;gap:10px;max-width:min(420px,calc(100vw - 40px))}.rtn-toast{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid #4c566a;border-radius:10px;background:#252d3e;color:#eceff4;box-shadow:0 10px 24px #0008}.rtn-toast-success{border-color:#a3be8c}.rtn-toast-error{border-color:#bf616a}.rtn-toast-warning{border-color:#ebcb8b}.rtn-toast-close{margin-left:auto;border:0;background:transparent;color:inherit;font-size:1.2rem;cursor:pointer}
                 .rtn-plan-table{overflow-x:auto;border:1px solid #3b465c;border-radius:10px}.rtn-plan-row{display:grid;grid-template-columns:1.2fr .8fr 1.5fr 1fr .6fr;min-width:760px;gap:12px;padding:13px 16px;border-bottom:1px solid #3b465c}.rtn-plan-row:last-child{border-bottom:0}.rtn-plan-header{font-weight:700;background:#1b2435}.rtn-state-ok{color:#a3be8c}.rtn-state-proche{color:#d08770}.rtn-state-echue{color:#bf616a}
+                .rtn-dashboard-actions,.rtn-filter-nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.rtn-button-large,.rtn-touch-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}.rtn-dashboard a.rtn-button,.rtn-page a.rtn-button{color:#020817!important;text-decoration:none}.rtn-dashboard a.rtn-button:hover,.rtn-page a.rtn-button:hover{color:#020817!important}.rtn-button-secondary{background:#d08770}.rtn-action-card{display:grid;gap:8px;color:#eceff4!important}.rtn-action-card strong,.rtn-action-card small{color:#eceff4!important}.rtn-action-card span{font-size:2rem;color:#88c0d0}.rtn-filter-active{border-bottom:3px solid #88c0d0;font-weight:700}.rtn-mobile-list{display:grid;gap:10px}.rtn-mobile-list-item{display:grid;gap:7px;padding:16px;border:1px solid #4c566a;border-radius:10px;background:#1b2435;color:#eceff4!important;text-decoration:none}.rtn-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}.rtn-detail-list{display:grid;grid-template-columns:minmax(120px,.5fr) minmax(0,1.5fr);gap:10px 18px}.rtn-detail-list dt{font-weight:700;color:#88c0d0}.rtn-detail-list dd{margin:0}.rtn-demo-badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#d08770;color:#020817;font-size:.8rem;font-weight:700}.rtn-safety-banner{max-width:1180px;margin:0 auto 20px;padding:20px;background:#4c2b2d;border:2px solid #bf616a;border-radius:14px}.rtn-safety-banner h2{margin-top:0;color:#ffb4ab}.rtn-check-row,.rtn-part-row{display:flex;align-items:center;gap:12px;min-height:48px;padding:10px 0;border-bottom:1px solid #3b465c}.rtn-check-row input{width:24px;height:24px;accent-color:#88c0d0}.rtn-part-row{justify-content:space-between}.rtn-part-row input{width:110px;padding:10px;border:1px solid #4c566a;border-radius:8px;background:#1b2435;color:#eceff4}.rtn-history{display:grid;gap:10px;margin:0;padding-left:22px}.rtn-dashboard-item .rtn-badge{background:#1b2435;color:#eceff4;border:1px solid var(--rtn-badge-color)}
             </style>
         {% endblock %}
 
@@ -40,5 +42,18 @@
             </div>
         {% endif %}
         {% block body %}{% endblock %}
+        {% set flash_messages = app.flashes %}
+        {% if flash_messages is not empty %}
+            <div class="rtn-toasts" aria-live="polite">
+                {% for label, messages in flash_messages %}
+                    {% for message in messages %}
+                        <div class="rtn-toast rtn-toast-{{ label }}" role="status">
+                            <span>{{ message }}</span>
+                            <button class="rtn-toast-close" type="button" aria-label="Fermer" onclick="this.parentElement.remove()">×</button>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
     </body>
 </html>

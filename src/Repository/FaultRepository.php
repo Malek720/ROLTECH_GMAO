@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Fault;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -19,21 +20,33 @@ class FaultRepository extends ServiceEntityRepository
     /** @return list<Fault> */
     public function findToDispatch(?\App\Entity\Site $site): array
     {
-        if ($site === null) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('f')
+        $query = $this->createQueryBuilder('f')
             ->join('f.machine', 'm')->addSelect('m')
             ->leftJoin('f.interventions', 'i', 'WITH', 'i.status IN (:openStatuses)')
-            ->andWhere('m.site = :site')
             ->andWhere('f.status IN (:faultStatuses)')
             ->andWhere('i.technician IS NULL')
-            ->setParameter('site', $site)
             ->setParameter('openStatuses', ['planifiee', 'en cours'])
             ->setParameter('faultStatuses', ['ouverte', 'en cours'])
             ->orderBy('f.severity', 'ASC')
-            ->addOrderBy('f.reportedAt', 'ASC')
+            ->addOrderBy('f.reportedAt', 'ASC');
+        if ($site === null) {
+            $query->andWhere('i.id IS NULL OR i.technician IS NULL');
+        } else {
+            $query->andWhere('m.site = :site')->setParameter('site', $site);
+        }
+
+        return $query->getQuery()->getResult();
+    }
+
+    /** @return list<Fault> */
+    public function findForReporter(User $reporter): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.machine', 'm')->addSelect('m')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->andWhere('f.reportedBy = :reporter')
+            ->setParameter('reporter', $reporter)
+            ->orderBy('f.reportedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }

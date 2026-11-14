@@ -1,347 +1,92 @@
-# RolTech GMAO — Project Context & Handoff Document
+# RolTech GMAO — Project Context & Handoff
 
-> Purpose: this file exists so another AI session (or a future you) can pick up
-> this project without re-deriving decisions already made. Read this before
-> making structural changes.
+> Purpose: lets any AI tool or developer continue this project without re-deriving past decisions. This file was regenerated when work moved from GitHub Copilot to another tool. It was written from the task specifications and reports, NOT from a fresh read of every file. Verify against the code (see "Audit checklist").
 
 ## What this project is
+Student internship project (ESPRIT, 3rd year computer engineering) for **Roller Technology Systems Industry (RolTech)**, Tunis. A web CMMS ("GMAO simplifiée") for about 40 machines on several sites in Tunisia (Sousse, Béja, Jendouba, Tunis), running 24h/day: machine fiche (serial number, model, site, status), preventive maintenance plans by module and part, automatic and "predictive" triggering, automatic work orders to technicians, fault declaration with notifications, role dashboards.
 
-A student internship (stage) project for **Roller Technology Systems
-Industry (RolTech)**, a manufacturing company in Tunis, Tunisia. The
-deliverable is a simplified CMMS ("GMAO simplifiée") — a web app for tracking
-industrial machines, faults ("pannes"), and maintenance interventions,
-replacing a manual paper/Excel process.
+Internship sprints: S1 cahier des charges + UML, S2 MySQL design, S3 core modules + functional tests, S4 dashboard/indicators + docs + report.
+Two repos: `ROLTECH_GMAO` (this one, code) and `ROLTECH_STAGE_DOCS` (MkDocs site on GitHub Pages: cahier des charges, UML, meeting notes). The docs repo is public: never put manual-derived content there.
 
-The internship runs 4 sprints (S1–S4):
-- **S1**: cahier des charges + UML modeling
-- **S2**: MySQL database design
-- **S3**: core modules (machines, faults, interventions) + functional tests
-- **S4**: dashboard/indicators, technical docs, final report
+## Stack
+Symfony 7 (webapp skeleton), Twig, Doctrine ORM + Migrations, MySQL/MariaDB, EasyAdminBundle 5, AssetMapper (no npm build), Symfony UX Turbo, Chart.js (lazy CDN import, the only CDN exception), PHPUnit.
+Dev environments: Windows (XAMPP, MariaDB 10.4.32, PowerShell, phpMyAdmin) and Linux (Ultramarine/Fedora, native MariaDB, zsh). Give commands for the right shell. `serverVersion` is set per machine in `DATABASE_URL` (`.env.local`), not in `doctrine.yaml`.
 
-Stack was specified loosely by the company contact (Ahmed): "Symfony (PHP) ou
-autre", MySQL, Git. We chose **Symfony 7 (webapp skeleton) + Twig + MySQL +
-EasyAdminBundle** as the concrete stack.
+## Databases and environment
+- `roltech_gmao`: main database. May NOT yet have all migrations applied; check before use.
+- `roltech_gmao_copy`: copy used to test migrations and for manual testing; the schema and fixtures were loaded there.
+- `roltech_gmao_test`: PHPUnit (`dbname_suffix: _test`). Create once per machine: `php bin/console doctrine:database:create --env=test` and `doctrine:schema:create --env=test`; recreate after schema changes.
+- `DATABASE_URL` can be overridden per shell: `$env:DATABASE_URL="mysql://root:@127.0.0.1:3306/roltech_gmao_copy?serverVersion=10.4.32-MariaDB"` (PowerShell) / `export DATABASE_URL=...` (zsh). Always verify with `php bin/console doctrine:query:sql "SELECT DATABASE()"`.
+- Backups on Windows: `C:\xampp\mysql\bin\mysqldump.exe -u root --result-file=backup.sql <db>` (do not use `>` in PowerShell 5.1, it writes UTF-16). To restore: `cmd /c "C:\xampp\mysql\bin\mysql.exe -u root <db> < backup.sql"`.
+- `doctrine:migrations:status` once failed because of a metadata-table mismatch (`doctrine_migration_versions.executed_at`); fixed by `sync-metadata-storage` plus `ALTER TABLE doctrine_migration_versions CHANGE executed_at executed_at DATETIME DEFAULT NULL` on the affected database. If `make:migration` is blocked, write the migration by hand from `doctrine:schema:update --dump-sql` (never `--force` outside `--env=test`).
+- Collations: `machine_module` is `utf8mb4_general_ci` (legacy), everything else `utf8mb4_unicode_ci`. Cross-table text comparisons in migrations need an explicit `COLLATE utf8mb4_unicode_ci` (a migration already failed on this).
+- PHP `intl` extension must be enabled (EasyAdmin dates). XAMPP MySQL: `root`, no password, started manually.
 
-## Two separate repositories
+## Test accounts (fixtures)
+`admin@roltechsystems.com`, `karim.technicien@roltechsystems.com`, `sami.technicien@roltechsystems.com`, `malek.responsable@roltechsystems.com`. Original passwords were `admin1234`, `tech1234` (both technicians), `resp1234`. A tool once reported `roltech1234`: read the real values in `src/DataFixtures/AppFixtures.php` before trusting any of these. Technicians and the responsable are assigned to sites.
 
-1. **`ROLTECH_GMAO`** — the actual Symfony application (code).
-2. **`ROLTECH_STAGE_DOCS`** — MkDocs Material documentation site (cahier des
-   charges, UML diagrams as Mermaid, meeting notes, stage journal), deployed
-   to GitHub Pages via `.github/workflows/deploy.yml`. Each repo's README
-   links to the other.
+## Done so far (phases 1-5)
+**Original base (S1-S3 tooling):** login with cosmetic role picker and role-based redirect, EasyAdmin dashboard (Nord theme), badge templates, Table/Grille toggle, charts via `AdminStatsProvider`, basic Technicien/Responsable dashboards, notifications (list, bell, mark as read), `MaintenancePlanner` + `app:maintenance:check`, `FaultWorkflow`, CRUDs for sites/modules/parts/tasks/schedules/notifications, `/maintenance-plan` (responsable) and `/admin/maintenance-plan`.
 
-This document describes **`ROLTECH_GMAO`** only.
+**Phase 1: multi-model catalog.** `MachineModel` (unique code), `Machine.machineModel`, modules unique per (model, code), tasks per model, `dataStatus` `confirmed|demo` on models/modules/parts/tasks, `Part.partNumber` nullable, `MaintenanceSchedule.archivedAt`. `MachineScheduleGenerator` (idempotent) driven by `MachineScheduleListener` (onFlush collects, postFlush generates and archives). Cross-model fault validation. Migration `Version20261113123000` (irreversible `down()`; creates `OC-CA1100` confirmed and placeholder `AUTRE`). Fixtures: seven models, 23 machines (8 OC-CA1100 + 15 demo) per `docs/roltech-product-families.md`.
 
-## Tech stack specifics (matters for troubleshooting)
+**Phase 2: catalog admin.** Shared status badge component. `MachineModelCrudController`: detail page (`/admin/model/{id}/detail`), duplicate (clones nested modules, parts, tasks as `demo`, null part numbers, no machines/schedules), export, import with preview and confirm, regenerate schedules, deletion refusal when machines or schedules (even archived) reference the model, model and family filters (custom joined filters). `CatalogCsvService`.
 
-- Symfony 7, `--webapp` skeleton (Twig, Doctrine ORM, Security, Forms,
-  Validator all included by default)
-- **AssetMapper** for frontend assets (no npm/webpack build step) — CSS/JS
-  files under `assets/` are auto-mapped; reference them with
-  `{{ asset('path/to/file.css') }}` in Twig, or `addCssFile()`/`addJsFile()`
-  in PHP (see EasyAdmin gotchas below)
-- **Symfony UX Turbo** is active by default on the whole app except the
-  login page (`data-turbo="false"` set there deliberately — see Known
-  Gotchas)
-- **EasyAdminBundle 5** (`easycorp/easyadmin-bundle`) powers `/admin`
-- MySQL/MariaDB via Doctrine ORM + Migrations
-- Dev environment is **split across two machines**: a Windows PC (XAMPP,
-  PowerShell) and an Ultramarine Linux (Fedora-based) laptop (native
-  MariaDB, zsh). Commands given to the user must match whichever machine
-  they're on — don't assume bash syntax works if they're on the Windows box.
+**Phase 3: fault declaration.** `/faults/new` (prefill with `?machine=<id>`), visibility by site (technicien) or grouped by site (responsable/admin), cross-site submission 422, module/part filtered by the machine's model, demo badge, confirmation page `/faults/{id}/confirmation` (owner only, 403 otherwise), `/faults` ("Mes pannes déclarées"), `/faults/interventions/{id}`, toasts in `base.html.twig`, inline 422 errors, double-submit protection (`Fault.submissionToken`, unique, migration `Version20261113210000`). Root cause of the original "does nothing" bug: never reported by the previous tool; flash messages were not rendered globally and success redirected back to the form.
 
-## Entities (`src/Entity/`)
+**Phase 4 (technicien workflow) and phase 5 (responsable tools): completed per the user, details unverified.** As specified: `InterventionPart`, lock-out confirmation and procedure-checklist progress stored on Intervention, start/finish transitions with required comment, "Je ne peux pas intervenir" (back to dispatch with reason, responsables notified), curative completion resolving the fault and notifying reporter and responsable, my-interventions page, "Tout marquer comme lu"; dispatch board with assign/reassign, manual intervention creation, machine fiche editing and timeline, close/reopen fault, postponement of a due task with reason (logged), all POST + CSRF with object-level authorization. The exact entities, fields, routes and migrations: see the Audit checklist.
 
-- **`User`** — `email` (identifier), `fullName`, `roles` (array:
-  `ROLE_ADMIN` / `ROLE_RESPONSABLE` / `ROLE_TECHNICIEN`), `password`
-  (hashed). Created via `make:user`, not `make:entity`.
-- **`Machine`** — `name`, `model`, `serialNumber`, `installationDate`,
-  `category` (free text: Presse/Usinage/Manutention/Utilitaire in fixture
-  data), `location` (nullable), `status` (free text: "en service"/"en
-  panne"/"en maintenance"). Has many `Fault`s.
-- **`Fault`** ("Panne") — `reportedAt`, `description`, `severity` (free
-  text: critique/moyenne/faible), `status` (free text: ouverte/en
-  cours/resolue), `machine` (ManyToOne), `reportedBy` (ManyToOne → User).
-  Has many `Intervention`s.
-- **`Intervention`** — `type` (preventive/curative), `startDate`,
-  `endDate` (nullable), `status` (planifiee/en cours/terminee), `comment`
-  (nullable), `fault` (ManyToOne), `technician` (ManyToOne → User).
+## Migrations present (verify with `ls migrations/`)
+`Version20261108110609`, `Version20261108110837`, `Version20261108112255` (base schema, earlier work), `Version20261113123000` (multi-model), `Version20261113210000` (fault submission token), plus any created in phases 4 and 5 (unknown names).
 
-All status/category/severity/type fields are **free-text strings**, not
-enums — chosen for simplicity at this project's scale, but means exact
-string matching everywhere (badge maps, stat counts) is fragile to typos.
-All four entities have `__toString()` implemented (required — EasyAdmin's
-`AssociationField` crashes without it).
+## Audit checklist (do this first, read-only)
+- List entities, routes (`php bin/console debug:router`), migrations, services and tests. Run the full PHPUnit suite and record tests/assertions/failures. The last known counts were about 36 tests after phase 2, then more in phases 3-5 (exact total unknown). Functional tests need the `_test` schema current.
+- Confirm which of these exist: phase 4 and 5 entities and routes (list them in this file afterwards), toasts, dispatch board, postponement logging, object-level authorization tests (technicien A vs B), CSRF tests on every mutating route.
+- Run `doctrine:schema:validate` on the copy and `doctrine:migrations:status`.
+- Read `AppFixtures.php` for the real test passwords.
+- Update this file with what you found.
 
-Maintenance planning uses only usage-based predictive thresholds: a schedule
-is `proche` at 80% and `echue` at 100% of its configured calendar or operating-
-hour interval. There is no machine-learning prediction. An overdue schedule
-creates at most one open preventive intervention, assigns the same-site
-technician with the fewest open interventions, and notifies site responsables
-when no technician is available.
+## Catalog CSV format (import and export)
+UTF-8 with BOM, delimiter `;` (the importer also detects `,`), max 1 MB, max 5,000 data rows, exact header:
+`record_type;module_code;parent_module_code;name;part_number;quantity;description;action;frequency_days;frequency_hours;procedure;data_status`
+- `record_type`: `module`, `part` or `task`.
+- module: `module_code`, `name` required; `parent_module_code` optional (must be defined earlier in the file or exist in the model; loops rejected).
+- part: `module_code`, `name` required; `part_number`, `quantity` optional.
+- task: `module_code` (or empty for a model-level task), `action` required, at least one positive frequency; `procedure` steps separated by ` | `.
+- `data_status`: `confirmed` or `demo`; empty = `demo`.
+- Export prefixes a single quote to cells starting with `=`, `+`, `-`, `@`; import removes only that leading quote.
+- Upsert, never delete: modules by (model, module_code); parts by (module, part_number) or (module, name) when no part number; tasks by (model, module, action). Preview before any write; the confirm step re-validates the raw CSV from the session (one-time nonce, hash, 15 min expiry), CSRF-checked, single transaction. Warning when `confirmed` rows go into a `demo` model.
 
-Fixtures (`src/DataFixtures/AppFixtures.php`) seed 4 users, 4 machines, 3
-faults, 3 interventions with realistic French data matching the above
-vocabulary exactly.
+## Key decisions (do not undo)
+- Status/category/severity/type are free-text strings with a fixed vocabulary (AGENTS.md rule 9).
+- Authorization comes only from DB roles, never from the login role picker.
+- Demo data for non-OC-CA1100 models is deliberately invented and always badged; it must never be presented as RolTech data. Part numbers `DEMO-<MODEL>-<MODULE>-<nn>`.
+- "Predictive" = usage thresholds (80%/100%) + fault-frequency alert, nothing more.
+- Maintenance frequencies from the manual's checklist are proposed defaults to confirm with RolTech (the PDF's tick marks were unreadable); they are editable data.
+- The 15 kg hook limit is OC-CA1100 only (`MachineModel.maxLoadKg`).
+- Schedules of a previous model are archived, never deleted.
+- Manual-derived docs are confidential (AGENTS.md rule 19). Use privacy settings on any AI tool; consider excluding `docs/` from indexing.
 
-## Authentication / login system
+## Known gotchas
+1. EasyAdmin `field.customOptions.get('key', default)`, never property access.
+2. `addAssetMapperEntry()` needs an importmap entry; use `addCssFile()`/`addJsFile()` for plain files.
+3. Prefix custom CSS classes with `rtn-` (generic names collided with the debug toolbar).
+4. Turbo breaks JS-built forms after redirects: `/login` has `data-turbo="false"`; use `turbo:load` or `data-turbo="false"` for pages with maps and 3D scenes.
+5. Do not gate listener setup behind `await import()`.
+6. EasyAdmin dark mode ignored plain `:root` overrides; `!important` on both `:root` and `.ea-dark-scheme`.
+7. `intl` must be enabled in `php.ini`.
+8. `make:admin:crud` generates placeholder fields; rewrite `configureFields()`.
+9. EasyAdmin 5 pretty URLs (`/admin/fault`).
+10. Doctrine lifecycle: never flush inside a lifecycle callback; the schedule listener collects in onFlush and generates in postFlush with a guarded follow-up flush.
+11. EasyAdmin action links are GET: data-changing actions must be POST forms with CSRF.
+12. `doctrine:fixtures:load` wipes all tables.
+13. A tool's terminal does not inherit the user's shell variables: set `DATABASE_URL` in the same session and verify with `SELECT DATABASE()` before any write.
 
-**Design**: a role-picker screen (`/login`) where the user picks a role tab
-(Technicien / Responsable / Administrateur) purely for **UI theming** — the
-actual authorization always comes from the authenticated user's real
-`roles` in the database, never from what was clicked. This was a deliberate
-security decision, tested explicitly (log in as a technicien while the
-"Administrateur" tab is selected → must still land on `/technicien`, not
-`/admin`).
+## Remaining work
+See `docs/REMAINING_PHASES.md` (phases 6-9). Also open: User CRUD has no password editing; some phase-3 requirements had no tests (symptom causes rendering, next-steps text, toast categories; a later step asked for them); exact phase 4/5 test coverage unknown.
 
-Files:
-- `templates/security/login.html.twig` — sidebar-nav-style glass card,
-  light "Nord" palette (not dark — went through several visual iterations:
-  desktop-window metaphor → dark neon/glass → current light Nord-muted
-  style, matching a reference screenshot of a light card-based dashboard
-  app)
-- `assets/styles/login.css`, `assets/login.js` — **all classes are
-  `rtn-`-prefixed** (RolTech Neon, name stuck from an earlier iteration).
-  This prefix discipline exists because of a real bug (see Known Gotchas).
-- `src/Controller/SecurityController.php` — `/login`, `/login_check`,
-  `/logout` routes
-- `src/Security/RoleBasedAuthenticationSuccessHandler.php` — redirects
-  based on `$user->getRoles()`, ignoring any client-side role selection
-- `config/packages/security.yaml` — `form_login` with the custom success
-  handler, `role_hierarchy` (ADMIN inherits RESPONSABLE inherits
-  TECHNICIEN), `access_control` per route prefix
-- `src/Controller/RoleDashboardController.php` +
-  `templates/dashboard/placeholder.html.twig` — bare-bones landing pages
-  for `/technicien` and `/responsable` (not yet built out; Admin uses the
-  real EasyAdmin dashboard at `/admin`)
-
-Test accounts (from fixtures): `admin@roltechsystems.com` / `admin1234`,
-`karim.technicien@roltechsystems.com` / `tech1234`,
-`sami.technicien@roltechsystems.com` / `tech1234`,
-`malek.responsable@roltechsystems.com` / `resp1234`.
-
-## Admin panel (`/admin`, EasyAdminBundle)
-
-`src/Controller/Admin/DashboardController.php` configures:
-- `Theme::new()` — official EA5 theming API: `primaryColor()` (Nord frost
-  blue `#5e81ac`/`#88c0d0`), `radius('xl')`, `spacing('xl')`,
-  `grays('slate')`, `setDefaultColorScheme('dark')`
-- `configureAssets()` loads two custom files via `addCssFile()` /
-  `addJsFile()` — **not** `addAssetMapperEntry()` (see gotchas)
-- `configureMenuItems()` links to the 4 CRUD controllers
-
-**CRUD controllers** (`src/Controller/Admin/{Machine,Fault,Intervention,
-User}CrudController.php`) — `make:admin:crud` generates placeholder fields
-(`title`/`description`) that don't match real entities; these were
-rewritten by hand to use real fields. Status/category/severity/type/role
-columns use a shared **badge template** system:
-- `templates/admin/field/badge.html.twig` — generic icon+color pill,
-  driven by a `badgeMap` custom option per field
-- `templates/admin/field/role_badge.html.twig` — variant for the `roles`
-  array field on User
-- `templates/admin/field/lead_icon.html.twig` — bigger standalone icon
-  tile (used as Machine's first card field in grid view)
-
-`assets/admin-overrides.css` / `assets/admin-overrides.js` (loaded via
-`configureAssets()`) add, on top of EasyAdmin's stock look:
-- Sidebar/font/icon size increases using **confirmed real CSS variable
-  names** pulled directly from the installed
-  `vendor/easycorp/easyadmin-bundle/assets/css/easyadmin-theme/*.css` (do
-  not guess these — grep the actual installed version first, they change
-  between EA releases)
-- A glass/blur treatment on the sidebar and stat cards
-- A **Table/Grille view toggle** — JS-injected button pair above every
-  CRUD index page's table, toggling a `body.rtn-grid-mode` class that
-  CSS-transforms the `<table class="datagrid">` into a card grid (pure
-  CSS trick: `tbody { display: grid }`, hide `<thead>`) — chosen over a
-  full custom index template rewrite to avoid breaking EasyAdmin's
-  built-in sorting/pagination/bulk-actions JS
-- **Charts**: `src/Service/AdminStatsProvider.php` is the single source of
-  truth for all chart data (counts by status/category/severity/type/role,
-  monthly time series for faults/interventions), consumed two ways:
-  - Main dashboard (`templates/admin/dashboard.html.twig`) embeds the full
-    stats as inline JSON (`<script type="application/json"
-    id="rtn-stats-embedded">`) — no extra network round-trip
-  - Each CRUD index page fetches the same data from
-    `/admin/stats-data` (`src/Controller/Admin/StatsApiController.php`)
-    and renders just its own section's charts, detecting which section
-    it's on from the **URL path** (EasyAdmin 5 uses pretty URLs like
-    `/admin/fault`, NOT `?crudControllerFqcn=...` — an earlier version
-    keyed off that query param and silently never matched). The old
-    query param and the page `<h1>` remain as fallbacks.
-  - Chart.js is loaded via a **dynamic `import()` from a CDN URL** inside
-    `admin-overrides.js`, not a static `import` statement and not
-    AssetMapper/importmap — this sidesteps needing to know whether
-    EasyAdmin's generated `<script>` tag has `type="module"` (see
-    gotchas)
-
-## Known gotchas (hard-won — don't rediscover these)
-
-1. **EasyAdmin `customOptions` needs `.get('key', default)`, not
-   `.badgeMap` property/array access** in Twig — the latter silently
-   resolves to nothing (no error), causing every badge to render the
-   fallback icon/color. This exact bug shipped once already.
-2. **`Assets::addAssetMapperEntry()` requires the file to be registered in
-   `importmap.php`** (it renders through Twig's `importmap()` function) —
-   it is NOT the same as AssetMapper auto-mapping a file for `asset()`.
-   For plain CSS/JS files that don't need importmap, use `addCssFile()` /
-   `addJsFile()` instead.
-3. **Generic CSS class names caused a real invisible-content bug** on the
-   login page — `.content`, `.panel` etc. collided with either
-   `app.css` or the Symfony Web Debug Toolbar's own stylesheet
-   (`_wdt/styles`, loaded on every page in dev). Root-caused by comparing
-   computed styles across ancestors in DevTools. Fix was a full rewrite
-   with a unique prefix (`rtn-`). **Always prefix custom classes uniquely
-   in this project.**
-4. **Symfony UX Turbo intercepts form submissions** and can leave a
-   dynamically-JS-built form in a broken half-updated state after a
-   redirect (e.g., failed login), because Turbo's morph doesn't reliably
-   re-run inline `<script>` tags that set up CSRF tokens / re-trigger JS
-   init. Fixed on `/login` via `data-turbo="false"` on the outer wrapper.
-   If new pages have JS-heavy dynamic forms, consider the same.
-5. **Don't wrap an entire script's setup (including event listener
-   registration) inside an `async` function gated on an `await import()`
-   of a slow external resource.** A previous version of
-   `admin-overrides.js` did this with the Chart.js CDN import, which
-   could delay `DOMContentLoaded` listener registration past the point
-   the event actually fires, silently breaking on some page loads. Fix:
-   keep synchronous setup (like the view-toggle button) unconditional and
-   immediate; only gate the actual chart-rendering code behind the async
-   import.
-6. **EasyAdmin dark mode was ignoring plain `:root` CSS variable
-   overrides** for sizing (font/icon sizes) despite no competing
-   dark-scheme rule existing anywhere in the installed CSS (verified via
-   full grep). Root cause not fully diagnosed (possible cascade-layer
-   interaction); worked around with `!important` on the override block,
-   applied to both `:root` and `.ea-dark-scheme` explicitly.
-7. **PHP `intl` extension must be enabled** in `php.ini` (commented out by
-   default in XAMPP) — EasyAdmin throws a hard `LogicException` on any
-   date field without it.
-8. **`make:admin:crud` does not know your entity's real fields** — it
-   generates placeholder `title`/`description` fields. Always rewrite
-   `configureFields()` by hand against the actual entity.
-9. **XAMPP MySQL**: default is `root` with no password, service must be
-   manually started in XAMPP Control Panel. **Native MariaDB (Linux)**:
-   `root` uses unix-socket auth by default, requires `sudo` for
-   `mariadb-secure-installation`; app credentials should be a dedicated
-   `.env.local`-only user, never committed.
-10. Real DB credentials belong in `.env.local` (gitignored), never in the
-    committed `.env`.
-
-## Outstanding / not yet done
-
-- `RoleDashboardController`'s Technicien/Responsable pages are placeholder
-  stubs only — real functionality (viewing/reporting faults, managing
-  interventions per role) not built yet.
-- `User` CRUD intentionally has **no password-edit field** — editing it
-  correctly needs a Symfony password-hasher event listener, not a plain
-  form field (flagged, not built).
-- Dashboard/section charts were reworked (fixed-height chart bodies,
-  denser grid, wide trend charts packed first, section detected from the
-  URL path, toggle/listeners no longer gated behind the Chart.js CDN
-  import). Verify on a real browser that the dashboard fits acceptably
-  and that Machines/Faults/Interventions/Users each show their charts.
-  Density is one CSS variable: `--rtn-chart-h` on `.rtn-charts-grid`.
-- Sprint work itself (S3 core modules beyond CRUD scaffolding, S4
-  finalized indicators/report) is still ahead — this whole conversation
-  covers S1 environment setup through early S2/S3 tooling, not the full
-  internship scope.
-- **No automated tests exist** (`tests/` is empty) despite this being an
-  explicit S3 deliverable ("premiers tests fonctionnels").
-
-## Working conventions established in this project
-
-- **This repo is worked on by multiple AI tools, not just Claude** — the
-  project root also contains `.aider.tags.cache.v4`, `.kilo/`, and
-  `.sylix/` (Aider, Kilo Code, and a "Sylix" agent conversation/skills
-  folder). Don't assume this document or a Claude chat history is the
-  complete record of what's changed — check actual file contents before
-  assuming staleness either way.
-- Verified against a real `tree` output of the project root (confirms:
-  `src/{Controller/Admin,DataFixtures,Entity,Repository,Security,Service}`,
-  `templates/{admin/field,dashboard,security}`,
-  `config/{packages,routes}`, `assets/{styles,controllers,vendor}`,
-  `migrations/`, `public/bundles/easyadmin/` all exist as described above).
-  `tests/` exists but is **empty** — no automated tests written yet,
-  despite S3's stated deliverable including "premiers tests fonctionnels".
-- When editing a file already in the repo, always ask to see current
-  content first if there's any chance it's been hand-modified since —
-  several bugs came from blindly overwriting.
-- Before writing CSS/JS that touches EasyAdmin internals, get the real
-  variable/class names from the user's actual installed
-  `vendor/easycorp/easyadmin-bundle` via grep — never guess. This
-  discipline was adopted after the class-collision bug and paid off
-  repeatedly afterward.
-- Verify asset-loading fixes with `curl`/`Invoke-WebRequest` against the
-  rendered HTML (checking for the actual `<link>`/`<script>` tag and its
-  resolved hashed filename) rather than trusting a fix worked from code
-  review alone.
-
-## Multi-model catalog and planning (Phase 1)
-
-The catalog supports seven machine models:
-`OC-CA1100`, `HLS-CA1100`, `HLS-PXL-CA1100`, `HLS-PXL-CA1100-01`,
-`PPXXL-CA1100`, `HP-2000X` and `AirMax-300`. Only `OC-CA1100` is confirmed
-data; the other catalog rows are demonstration data. Data-status values are
-exactly `confirmed` and `demo`, displayed in French as “Données confirmées” or
-“Données de démonstration”.
-
-Modules, parts and maintenance tasks belong to a `MachineModel`. Module codes
-are unique per model, not globally. The migration creates the confirmed
-`OC-CA1100` row and the `AUTRE` placeholder, backfills existing machines,
-modules and tasks, then removes the former free-text model columns. On the
-current database, there are 13 maintenance tasks, all linked to modules; none
-requires the part-based fallback and none is assigned to `AUTRE`.
-
-Active schedules have `archivedAt IS NULL`. When a machine changes model,
-schedules from the old model are archived rather than deleted, and missing
-schedules for the new model are generated. Planners, maintenance checks and
-dashboard statistics ignore archived schedules. Schedule synchronization is
-performed by `MachineScheduleListener` through `onFlush` and guarded
-`postFlush`, calling the idempotent `MachineScheduleGenerator`; controllers and
-fixtures do not own this invariant.
-
-The Phase 1 migration is intentionally irreversible. It drops legacy free-text
-model columns after backfill, so rollback must be performed by restoring the
-database backup. The migration also removes its temporary `data_status`
-defaults before completion. The current database has no legacy unique module
-index; the migration creates the `(machine_model_id, code)` unique index.
-
-The configured database server is MariaDB `10.4.32`; this must match the
-`serverVersion` used by Doctrine DBAL. Each machine must provide its own
-`DATABASE_URL` in `.env.local`, including the actual MariaDB version, for
-example:
-
-```dotenv
-DATABASE_URL="mysql://root:@127.0.0.1:3306/roltech_gmao?serverVersion=10.4.32-MariaDB&charset=utf8mb4"
-```
-
-Copy the `DATABASE_URL` value from `.env` into your local `.env.local`, then
-replace its database credentials/name and `serverVersion` for that machine.
-Do not commit `.env.local`. Before applying the migration, use
-`doctrine:migrations:migrate --dry-run` and review the generated SQL. Never run
-the migration or fixtures against the main database without a verified backup.
-
-New Doctrine tables use `utf8mb4_unicode_ci` through `default_table_options`.
-The existing `machine_module` table remains `utf8mb4_general_ci` for its
-legacy text columns (`code` and `model`); the Phase 1 migration does not
-convert existing tables. Its text join to `machine_model.code` therefore uses
-an explicit `utf8mb4_unicode_ci` collation.
-
-## Catalog CSV format
-
-Catalog import/export uses UTF-8 with BOM and semicolon delimiters for French
-Excel. The header order is:
-
-```text
-record_type;module_code;parent_module_code;name;part_number;quantity;description;action;frequency_days;frequency_hours;procedure;data_status
-```
-
-Rows are `module`, `part` or `task`. Modules require `module_code` and `name`;
-parts require `module_code` and `name`; tasks require `action` and at least one
-positive frequency. `parent_module_code`, part number, quantity and procedure
-are optional where applicable. `data_status` is `confirmed` or `demo`; blank
-means `demo`. Imports preview every row before writing, never delete records,
-and commit confirmed changes in one transaction. Exported text beginning with
-`=`, `+`, `-` or `@` is prefixed with a single quote to prevent spreadsheet
-formula injection.
+## Working conventions
+- Several AI tools have touched this repo (Aider, Kilo, Sylix, Copilot, now another). Read the actual files before editing; do not assume this file is complete.
+- Before writing CSS or Twig touching EasyAdmin internals, grep `vendor/easycorp/easyadmin-bundle` for real names.
+- Verify asset fixes with a request against the rendered HTML, not code review alone.
+- Reports state which requirements lack a test. A change is not done until the full suite passes on `roltech_gmao_test`.

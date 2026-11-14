@@ -46,9 +46,14 @@ class MaintenanceSchedule
     #[ORM\OneToMany(targetEntity: Intervention::class, mappedBy: 'schedule')]
     private Collection $interventions;
 
+    /** @var Collection<int, MaintenancePostponement> */
+    #[ORM\OneToMany(targetEntity: MaintenancePostponement::class, mappedBy: 'schedule', orphanRemoval: true)]
+    private Collection $postponements;
+
     public function __construct()
     {
         $this->interventions = new ArrayCollection();
+        $this->postponements = new ArrayCollection();
     }
 
     public function initializeFromMachine(Machine $machine, MaintenanceTask $task, ?\DateTime $createdAt = null): static
@@ -89,6 +94,9 @@ class MaintenanceSchedule
 
     /** @return Collection<int, Intervention> */
     public function getInterventions(): Collection { return $this->interventions; }
+
+    /** @return Collection<int, MaintenancePostponement> */
+    public function getPostponements(): Collection { return $this->postponements; }
 
     public function __toString(): string
     {

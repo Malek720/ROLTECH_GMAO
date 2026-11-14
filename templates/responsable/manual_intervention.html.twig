@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle intervention{% endblock %}
+
+{% block body %}
+<main class="rtn-page rtn-responsable-page">
+    <nav class="rtn-nav"><a href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Retour à la fiche</a><a href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a></nav>
+    <section class="rtn-card">
+        <p class="rtn-eyebrow">{{ machine.site }} · {{ machine }}</p>
+        <h1>Créer une intervention</h1>
+        {% if errors.form|default(null) %}<p class="rtn-field-error" role="alert">{{ errors.form }}</p>{% endif %}
+        <form method="post" class="rtn-form rtn-form-grid">
+            <input type="hidden" name="intervention[_token]" value="{{ csrf_token('responsable_manual_intervention_' ~ machine.id) }}">
+            <label class="rtn-form-field">Type
+                <select name="intervention[type]" required>
+                    <option value="">Choisir</option>
+                    <option value="preventive" {% if data.type|default('') == 'preventive' %}selected{% endif %}>Préventive</option>
+                    <option value="curative" {% if data.type|default('') == 'curative' %}selected{% endif %}>Curative</option>
+                </select>
+            </label>
+            <label class="rtn-form-field">Technicien
+                <select name="intervention[technician]">
+                    <option value="">En attente d’affectation</option>
+                    {% for technician in technicians %}<option value="{{ technician.id }}" {% if data.technician|default('') == technician.id %}selected{% endif %}>{{ technician.fullName }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Module
+                <select name="intervention[module]">
+                    <option value="">Non précisé</option>
+                    {% for module in modules %}<option value="{{ module.id }}" {% if data.module|default('') == module.id %}selected{% endif %}>{{ module.code }} — {{ module.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Tâche préventive
+                <select name="intervention[task]">
+                    <option value="">Aucune</option>
+                    {% for task in tasks %}<option value="{{ task.id }}" {% if data.task|default('') == task.id %}selected{% endif %}>{{ task.action }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Pièce
+                <select name="intervention[part]">
+                    <option value="">Non précisée</option>
+                    {% for module in modules %}{% for part in module.parts %}<option value="{{ part.id }}" {% if data.part|default('') == part.id %}selected{% endif %}>{{ part.partNumber ?: 'référence à confirmer' }} — {{ part.description }}</option>{% endfor %}{% endfor %}
+                </select>
+            </label>
+            <label class="rtn-form-field">Gravité curative
+                <select name="intervention[severity]">
+                    <option value="">Choisir</option><option value="critique">Critique</option><option value="moyenne">Moyenne</option><option value="faible">Faible</option>
+                </select>
+            </label>
+            <label class="rtn-form-field rtn-form-field-full">Description curative
+                <textarea name="intervention[description]" placeholder="Obligatoire pour une intervention curative">{{ data.description|default('') }}</textarea>
+            </label>
+            <button class="rtn-button rtn-button-large" type="submit">Créer l’intervention</button>
+        </form>
+    </section>
+</main>
+{% endblock %}

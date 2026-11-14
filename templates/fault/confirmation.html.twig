@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Panne déclarée{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    <nav class="rtn-nav">
+        <a href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes déclarées</a>
+        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une autre panne</a>
+        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
+    </nav>
+    <section class="rtn-card">
+        <h1>Panne déclarée</h1>
+        <p>Votre déclaration a bien été enregistrée. L’équipe de maintenance va examiner la panne et suivre l’intervention.</p>
+        <dl class="rtn-detail-list">
+            <dt>Machine</dt><dd>{{ fault.machine }}</dd>
+            <dt>Modèle</dt><dd>{{ fault.machine.machineModel.code }} — {{ fault.machine.machineModel.name }} {% include 'components/status_badge.html.twig' with {status: fault.machine.machineModel.dataStatus} only %}</dd>
+            <dt>Gravité</dt><dd>{% include 'components/status_badge.html.twig' with {status: fault.severity} only %}</dd>
+            <dt>Statut</dt><dd>{% include 'components/status_badge.html.twig' with {status: fault.status} only %}</dd>
+            <dt>Description</dt><dd>{{ fault.description }}</dd>
+            <dt>Technicien affecté</dt><dd>{{ intervention and intervention.technician ? intervention.technician.fullName : 'En attente d’affectation' }}</dd>
+        </dl>
+        {% if intervention and (not is_granted('ROLE_TECHNICIEN') or (intervention.technician and intervention.technician.id == app.user.id)) %}
+            <p id="intervention"><a class="rtn-button" href="{{ path('fault_intervention', {id: intervention.id}) }}">Voir l’intervention</a></p>
+        {% endif %}
+        <p>Prochaine étape : le technicien affecté ou le responsable du site vous tiendra informé de la prise en charge.</p>
+    </section>
+</main>
+{% endblock %}
