@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Recherche{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .rtn-search-summary{margin:8px 0 0;color:#d8dee9}
+        .rtn-search-list{display:grid;gap:10px;margin:14px 0 0;padding:0;list-style:none}
+        .rtn-search-item{display:grid;gap:6px;padding:16px;border:1px solid #4c566a;border-radius:10px;background:#1b2435;color:#eceff4}
+        .rtn-search-item strong{color:#eceff4;font-size:1.05rem}
+        .rtn-search-item small{color:#d8dee9}
+        .rtn-search-badges{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+        .rtn-search-empty{margin:14px 0 0;color:#9aa7ba}
+        .rtn-search-hint{margin:6px 0 0;color:#ebcb8b}
+    </style>
+{% endblock %}
+
+{% block body %}
+{% set backRoute = is_granted('ROLE_RESPONSABLE') ? 'responsable_dashboard' : 'technicien_dashboard' %}
+<main class="rtn-page">
+    <header class="rtn-page-heading">
+        <div>
+            <p class="rtn-eyebrow">RolTech GMAO</p>
+            <h1>Recherche</h1>
+            {% if term == '' or tooShort %}
+                <p class="rtn-search-summary">Recherchez une machine par nom, numéro de série ou modèle, ou une intervention par numéro.</p>
+            {% else %}
+                <p class="rtn-search-summary">Résultat pour « {{ term }} ».</p>
+            {% endif %}
+        </div>
+        <nav class="rtn-dashboard-actions">
+            <a class="rtn-button rtn-button-large" href="{{ path(backRoute) }}" data-turbo="false">Retour</a>
+        </nav>
+    </header>
+
+    {% if term == '' or tooShort %}
+        <section class="rtn-card">
+            <p class="rtn-search-hint">Saisissez au moins 2 caractères pour lancer la recherche.</p>
+        </section>
+    {% else %}
+        <section class="rtn-card">
+            <h2>Machines</h2>
+            {% if machines is empty %}
+                <p class="rtn-search-empty">Aucun résultat.</p>
+            {% else %}
+                <ul class="rtn-search-list">
+                    {% for machine in machines %}
+                        <li class="rtn-search-item" data-machine-id="{{ machine.id }}">
+                            <strong>{{ machine.name }}</strong>
+                            <small>N° de série : {{ machine.serialNumber ?: '—' }}</small>
+                            <small>Modèle : {{ machine.machineModel ? machine.machineModel.code ~ ' — ' ~ machine.machineModel.name : '—' }}</small>
+                            <small>Site : {{ machine.site ? machine.site.name : '—' }}</small>
+                            <div class="rtn-search-badges">
+                                {% include 'components/status_badge.html.twig' with {status: machine.status} only %}
+                                {% include 'components/status_badge.html.twig' with {status: machine.machineModel.dataStatus} only %}
+                            </div>
+                            {% if is_granted('ROLE_RESPONSABLE') %}
+                                <a href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Ouvrir la fiche</a>
+                            {% else %}
+                                <a href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Déclarer une panne</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        <section class="rtn-card">
+            <h2>Interventions</h2>
+            {% if interventions is empty %}
+                <p class="rtn-search-empty">Aucun résultat.</p>
+            {% else %}
+                <ul class="rtn-search-list">
+                    {% for intervention in interventions %}
+                        {% set target = intervention.fault ? intervention.fault.machine : (intervention.schedule ? intervention.schedule.machine : null) %}
+                        <li class="rtn-search-item" data-intervention-id="{{ intervention.id }}">
+                            <strong>Intervention #{{ intervention.id }}</strong>
+                            <small>Machine : {{ target ? target.name : '—' }}</small>
+                            <small>Date prévue : {{ intervention.startDate ? intervention.startDate|date('d/m/Y') : '—' }}</small>
+                            <div class="rtn-search-badges">
+                                {% include 'components/status_badge.html.twig' with {status: intervention.type} only %}
+                                {% include 'components/status_badge.html.twig' with {status: intervention.status} only %}
+                            </div>
+                            <a href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">Ouvrir l'intervention</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    {% endif %}
+</main>
+{% endblock %}

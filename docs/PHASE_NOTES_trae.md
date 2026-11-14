@@ -86,3 +86,37 @@ dependency (Chart.js stays the single CDN exception, rule 7).
 - The KPI CSV is a single flat file with a `type` column rather than one file per table; the spec did not
   fix an exact column list, so the columns above are this implementation's choice.
 - Charts are an enhancement only: there is no chart-specific test (Chart.js runs in the browser).
+
+## Chunk 8c — global search
+
+Search covers machines (name, serial number, model code/name) and interventions (by id). No schema change,
+no migration, no new dependency.
+
+- Added `src/Controller/SearchController.php`: `GET /recherche` (`global_search`), `#[IsGranted('IS_AUTHENTICATED_FULLY')]`
+  plus a matching `security.yaml` rule (`^/recherche`, IS_AUTHENTICATED_FULLY). The controller only trims `q`,
+  applies the 2-character minimum (French hint, no query runs) and renders; all business logic is in the repositories.
+- Scoping lives in the queries (rule 26), never in the template:
+  - `MachineRepository::search(User $user, string $term, int $limit = 20)` — admin/responsable see every site,
+    a technicien only `m.site = :site` (empty list if they have no site). The OR group is wrapped in parentheses
+    so the site condition cannot be swallowed by `OR` precedence.
+  - `InterventionRepository::searchById(User $user, string $term, int $limit = 20)` — admin/responsable find every
+    intervention, a technicien only `i.technician = :user`. A non-numeric term matches nothing.
+- `%`, `_` and `\` in the user input are escaped with `addcslashes($term, '\\%_')` before the `LIKE` pattern; every
+  value is a bound parameter; each search is capped at 20 rows.
+- "No match" and "not allowed" render the same French empty state ("Aucun résultat."); nothing reveals that a
+  hidden record exists.
+- Added `templates/_partials/global_search.html.twig` (a labelled `<input type="search">` inside a `role="search"`
+  form, `minlength="2"`, pre-filled with the current `q`, mobile-friendly 44px targets) and a one-line include in
+  `templates/base.html.twig` (inside the existing `{% if app.user %}` block next to the notification bell).
+- Added `templates/search/results.html.twig`: GET form is the shared global bar, two always-rendered sections
+  (Machines, Interventions) with `data-machine-id` / `data-intervention-id` markers, demo/confirmed badge on
+  machines (rules 24/28), `rtn-` classes, mobile list.
+- Added `tests/Functional/SearchTest.php`.
+
+### Known limits of chunk 8c
+
+- Interventions are searched by exact id: given the 2-character minimum, single-digit ids are not searchable
+  (the test pins intervention ids to 4 digits with `ALTER TABLE intervention AUTO_INCREMENT` for determinism).
+- Results are capped at 20 per type with no pagination, and there is no test for that cap or for a term that
+  matches more than 20 rows.
+

@@ -71,6 +71,41 @@ class MachineRepository extends ServiceEntityRepository
         ->getResult();
     }
 
+    /**
+     * Global search by name, serial number or model (code/name).
+     *
+     * Scoping happens in the query, never in the template (rule 26): admin and
+     * responsable search every site, a technicien only their own site. A technicien
+     * with no site gets an empty list, the same result as "no match", so nothing leaks.
+     * Every parameter is bound and LIKE wildcards in the user input are escaped.
+     *
+     * @return list<Machine>
+     */
+    public function search(User $user, string $term, int $limit = 20): array
+    {
+        $roles = $user->getRoles();
+        $seesEverySite = in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_RESPONSABLE', $roles, true);
+
+        if (!$seesEverySite && $user->getSite() === null) {
+            return [];
+        }
+
+        $query = $this->createQueryBuilder('m')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->leftJoin('m.site', 'site')->addSelect('site')
+            // Parentheses keep the OR group from swallowing the site scoping below.
+            ->andWhere('(m.name LIKE :term OR m.serialNumber LIKE :term OR model.code LIKE :term OR model.name LIKE :term)')
+            ->setParameter('term', '%'.addcslashes($term, '\\%_').'%')
+            ->orderBy('m.name', 'ASC')
+            ->setMaxResults($limit);
+
+        if (!$seesEverySite) {
+            $query->andWhere('m.site = :site')->setParameter('site', $user->getSite());
+        }
+
+        return $query->getQuery()->getResult();
+    }
+
     //    /**
     //     * @return Machine[] Returns an array of Machine objects
     //     */

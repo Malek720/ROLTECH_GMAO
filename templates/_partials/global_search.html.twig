@@ -1,0 +1,19 @@
+{# Global search bar included once in base.html.twig for every logged-in page. #}
+<form class="rtn-global-search" role="search" method="get" action="{{ path('global_search') }}">
+    <label class="rtn-global-search-label" for="rtn-global-search-input">Rechercher une machine ou une intervention</label>
+    <div class="rtn-global-search-row">
+        <input class="rtn-global-search-input" id="rtn-global-search-input" name="q" type="search" minlength="2"
+               value="{{ app.request.query.get('q') }}" autocomplete="off"
+               placeholder="Nom, n° de série, modèle ou n° d'intervention">
+        <button class="rtn-button rtn-global-search-button" type="submit">Rechercher</button>
+    </div>
+</form>
+<style>
+    .rtn-global-search{display:grid;gap:6px;margin:44px auto 0;max-width:1180px;padding:0 36px;box-sizing:border-box}
+    .rtn-global-search-label{color:#88c0d0;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+    .rtn-global-search-row{display:flex;gap:10px;flex-wrap:wrap}
+    .rtn-global-search-input{flex:1 1 220px;box-sizing:border-box;min-height:44px;padding:11px 12px;border:1px solid #4c566a;border-radius:8px;background:#1b2435;color:#eceff4;font:inherit}
+    .rtn-global-search-input:focus{outline:2px solid #88c0d0;outline-offset:1px}
+    .rtn-global-search-button{min-height:44px}
+    @media (max-width:700px){.rtn-global-search{padding:0 16px}}
+</style>

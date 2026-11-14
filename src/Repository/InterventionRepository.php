@@ -115,6 +115,41 @@ class InterventionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Global search for interventions by id.
+     *
+     * Scoping happens in the query, never in the template (rule 26): admin and
+     * responsable find every intervention, a technicien only the ones assigned to
+     * them. A non-numeric term matches nothing. The id is bound and capped by $limit.
+     *
+     * @return list<Intervention>
+     */
+    public function searchById(\App\Entity\User $user, string $term, int $limit = 20): array
+    {
+        if (!ctype_digit($term)) {
+            return [];
+        }
+
+        $roles = $user->getRoles();
+        $seesEverySite = in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_RESPONSABLE', $roles, true);
+
+        $query = $this->createQueryBuilder('i')
+            ->leftJoin('i.fault', 'f')->addSelect('f')
+            ->leftJoin('f.machine', 'fm')->addSelect('fm')
+            ->leftJoin('i.schedule', 's')->addSelect('s')
+            ->leftJoin('s.machine', 'sm')->addSelect('sm')
+            ->andWhere('i.id = :id')
+            ->setParameter('id', (int) $term)
+            ->orderBy('i.id', 'ASC')
+            ->setMaxResults($limit);
+
+        if (!$seesEverySite) {
+            $query->andWhere('i.technician = :technician')->setParameter('technician', $user);
+        }
+
+        return $query->getQuery()->getResult();
+    }
+
     //    /**
     //     * @return Intervention[] Returns an array of Intervention objects
     //     */

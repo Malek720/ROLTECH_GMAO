@@ -40,6 +40,7 @@
             <div class="rtn-bell">
                 <a href="{{ path('notifications') }}" data-turbo="false">🔔 Notifications ({{ notification_count() }})</a>
             </div>
+            {% include '_partials/global_search.html.twig' %}
         {% endif %}
         {% block body %}{% endblock %}
         {% set flash_messages = app.flashes %}
