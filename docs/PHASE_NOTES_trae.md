@@ -54,3 +54,35 @@ groupable by model. Model rows carry the model `dataStatus` so demo data is neve
 - The availability table row exposes `openCritiqueFaults` and `faultsWithoutResolutionTimestamp` so the CSV
   can mark `resolution_sans_horodatage`.
 - No KPI route, CSV route or template was added in this chunk.
+
+## Chunk 8b — KPI page and CSV export
+
+Chunk 8b adds the presentation layer on top of the 8a calculators. No schema change, no migration, no new
+dependency (Chart.js stays the single CDN exception, rule 7).
+
+- Added `src/Controller/KpiController.php`: `GET /indicateurs` (`kpi_index`) and `GET /indicateurs.csv`
+  (`kpi_export`). Both carry `#[IsGranted('ROLE_RESPONSABLE')]` and a matching `security.yaml` rule
+  (`^/indicateurs`, ROLE_RESPONSABLE). Both read `from`/`to` and delegate to
+  `AdminStatsProvider::getKpiReport()`, where `KpiCalculator::resolveWindow()` validates the range once,
+  so the page and the CSV always share the same validated window (a bad range falls back to the default
+  12-month window). Non-string query values (e.g. `?from[]=`) are ignored.
+- Added `templates/kpi/index.html.twig`: GET filter form, the four tables always rendered (availability
+  per machine grouped by model with the "n/d" case, mean repair time, faults per site per month, faults
+  per model per month), demo/confirmed badges through the shared status badge component (rule 24), French
+  empty states, `rtn-` classes and horizontal scroll for narrow screens (rule 25). The chart data is
+  embedded as JSON for the optional charts.
+- Added `assets/kpi.js`: lazy Chart.js import from the CDN (rule 7). The listeners are registered
+  immediately, never behind `await import`. When the CDN is unreachable the charts show a French notice
+  and the tables above stay usable, so the page works offline.
+- CSV: single file, UTF-8 BOM, `;` delimiter, every cell through `CsvCellEscaper` (rule 34). Columns:
+  `type;site;machine;modele;statut_donnees;periode;nombre;valeur;resolution_sans_horodatage`. The
+  `statut_donnees` column exports the model data status and `resolution_sans_horodatage` carries the count
+  of critical faults closed without a finished intervention.
+- Links: an "Indicateurs KPI" button on the responsable dashboard and a `MenuItem` in the EasyAdmin menu.
+- Added `tests/Functional/KpiControllerTest.php`.
+
+### Known limits of chunk 8b
+
+- The KPI CSV is a single flat file with a `type` column rather than one file per table; the spec did not
+  fix an exact column list, so the columns above are this implementation's choice.
+- Charts are an enhancement only: there is no chart-specific test (Chart.js runs in the browser).

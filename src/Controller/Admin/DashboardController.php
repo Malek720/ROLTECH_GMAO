@@ -93,5 +93,6 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(MaintenanceScheduleCrudController::class, 'Plannings', 'fa fa-calendar-check');
         yield MenuItem::linkTo(NotificationCrudController::class, 'Notifications', 'fa fa-bell');
         yield MenuItem::linkToRoute('Plan de maintenance', 'fa fa-calendar-days', 'admin_maintenance_plan');
+        yield MenuItem::linkToRoute('Indicateurs KPI', 'fa fa-chart-line', 'kpi_index');
     }
 }

@@ -6,7 +6,7 @@
 <main class="rtn-dashboard">
     <header class="rtn-dashboard-header">
         <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Responsable{% if site %} — {{ site.name }}{% else %} — Tous les sites{% endif %}</h1></div>
-        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('kpi_index') }}" data-turbo="false">Indicateurs KPI</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
     </header>
     <section class="rtn-dashboard-grid">
         <div class="rtn-dashboard-card"><h2>À dispatcher</h2><strong class="rtn-dashboard-number">{{ faultsToDispatch|length }}</strong><p>pannes sans technicien affecté</p></div>
