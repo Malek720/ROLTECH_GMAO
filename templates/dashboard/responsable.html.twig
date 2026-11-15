@@ -2,17 +2,23 @@
 
 {% block title %}Espace Responsable{% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap('map') }}
+{% endblock %}
+
 {% block body %}
 <main class="rtn-dashboard">
     <header class="rtn-dashboard-header">
         <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Responsable{% if site %} — {{ site.name }}{% else %} — Tous les sites{% endif %}</h1></div>
-        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('kpi_index') }}" data-turbo="false">Indicateurs KPI</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a><a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('kpi_index') }}" data-turbo="false">Indicateurs KPI</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
     </header>
     <section class="rtn-dashboard-grid">
         <div class="rtn-dashboard-card"><h2>À dispatcher</h2><strong class="rtn-dashboard-number">{{ faultsToDispatch|length }}</strong><p>pannes sans technicien affecté</p></div>
         <div class="rtn-dashboard-card"><h2>Maintenance échue</h2><strong class="rtn-dashboard-number">{{ overdueSchedules|length }}</strong><p>tâches à traiter</p></div>
         <div class="rtn-dashboard-card"><h2>Machines visibles</h2><strong class="rtn-dashboard-number">{{ machines|length }}</strong><p>machines suivies sur tous les sites</p></div>
     </section>
+    {{ render(controller('App\\Controller\\MapController::card')) }}
     <section class="rtn-dashboard-card">
         <h2>Machines par statut</h2>
         <div class="rtn-status-grid">{% for status, count in machineCounts %}<div><strong>{{ count }}</strong><span>{{ status|capitalize }}</span></div>{% else %}<p>Aucune machine rattachée à votre site.</p>{% endfor %}</div>

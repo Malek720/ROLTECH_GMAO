@@ -26,10 +26,19 @@
 
 {% block body %}
 <main class="rtn-page rtn-responsable-page">
+    {% include '_partials/breadcrumb.html.twig' with {
+        items: [
+            { label: 'Tunisie', url: path('map_index') },
+            { label: machine.site ? machine.site.name : 'Site inconnu', url: machine.site ? path('site_show', {id: machine.site.id}) : null },
+            { label: machine.location ?: 'Zone non renseignée' },
+            { label: machine.name }
+        ]
+    } only %}
     <header class="rtn-dashboard-header">
         <div><p class="rtn-eyebrow">{{ machine.site }} · {{ machine.location ?: 'Zone non renseignée' }}</p><h1>{{ machine.name }}</h1></div>
         <nav class="rtn-dashboard-actions">
             <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a>
             <a class="rtn-button rtn-button-large" href="{{ path('responsable_manual_intervention', {id: machine.id}) }}" data-turbo="false">Nouvelle intervention</a>
         </nav>
     </header>

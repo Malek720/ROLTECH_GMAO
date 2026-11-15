@@ -36,6 +36,12 @@ security:
         - { path: ^/recherche, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/maintenance-plan, roles: ROLE_RESPONSABLE }
         - { path: ^/indicateurs, roles: ROLE_RESPONSABLE }
+        # Phase 6 — map, site page, machine list (technicien and above)
+        - { path: ^/carte, roles: ROLE_TECHNICIEN }
+        - { path: ^/sites, roles: ROLE_TECHNICIEN }
+        - { path: ^/parc, roles: ROLE_TECHNICIEN }
+        # Machine fiche stays ROLE_RESPONSABLE (attribute + firewall both enforce it)
+        - { path: ^/machines, roles: ROLE_RESPONSABLE }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/responsable, roles: ROLE_RESPONSABLE }
         - { path: ^/technicien, roles: ROLE_TECHNICIEN }

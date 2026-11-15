@@ -72,6 +72,66 @@ class MachineRepository extends ServiceEntityRepository
     }
 
     /**
+     * Machine list page: scoped by role, searchable, filterable.
+     *
+     * Admin / responsable see every site. A technicien sees only their own site.
+     * A technicien with no site gets an empty list (rule 26).
+     *
+     * This is a NEW method; findVisibleForFaultDeclaration() and search() are
+     * unchanged so their tests keep passing.
+     *
+     * @param array<string, string> $filters  Keys: 'q', 'status', 'model', 'family'
+     * @return list<Machine>
+     */
+    public function findForList(User $user, array $filters = []): array
+    {
+        $roles         = $user->getRoles();
+        $seesEverySite = in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_RESPONSABLE', $roles, true);
+
+        if (!$seesEverySite && $user->getSite() === null) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('m')
+            ->join('m.machineModel', 'model')->addSelect('model')
+            ->leftJoin('m.site', 'site')->addSelect('site')
+            ->orderBy('site.name', 'ASC')
+            ->addOrderBy('m.name', 'ASC');
+
+        if (!$seesEverySite) {
+            $qb->andWhere('m.site = :site')->setParameter('site', $user->getSite());
+        }
+
+        // Text search
+        $q = trim((string) ($filters['q'] ?? ''));
+        if ($q !== '') {
+            $escaped = '%'.addcslashes($q, '\\%_').'%';
+            $qb->andWhere('(m.name LIKE :q OR m.serialNumber LIKE :q OR model.code LIKE :q OR model.name LIKE :q)')
+               ->setParameter('q', $escaped);
+        }
+
+        // Status filter
+        $status = trim((string) ($filters['status'] ?? ''));
+        if ($status !== '') {
+            $qb->andWhere('m.status = :status')->setParameter('status', $status);
+        }
+
+        // Model filter (by id)
+        $modelId = (int) ($filters['model'] ?? 0);
+        if ($modelId > 0) {
+            $qb->andWhere('model.id = :model')->setParameter('model', $modelId);
+        }
+
+        // Family filter
+        $family = trim((string) ($filters['family'] ?? ''));
+        if ($family !== '') {
+            $qb->andWhere('model.family = :family')->setParameter('family', $family);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Global search by name, serial number or model (code/name).
      *
      * Scoping happens in the query, never in the template (rule 26): admin and

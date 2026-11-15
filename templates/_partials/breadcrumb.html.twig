@@ -1,0 +1,74 @@
+{#
+  Shared Breadcrumb Component (Phase 6)
+  Hierarchy: Tunisie > Site > Zone > Machine > Module > Pièce
+  Usage:
+    {% include '_partials/breadcrumb.html.twig' with {
+        items: [
+            { label: 'Tunisie', url: path('map_index') },
+            { label: site.name, url: path('site_show', { id: site.id }) },
+            { label: zone|default(null) },
+            { label: machine.name|default(null), url: is_granted('ROLE_RESPONSABLE') and machine.id|default(null) ? path('machine_fiche', { id: machine.id }) : null },
+            { label: module.name|default(null) },
+            { label: part.description|default(null) }
+        ]
+    } only %}
+#}
+{% set items = items|default([])|filter(item => item is not null and item.label|default('') != '') %}
+{% if items|length > 0 %}
+<nav class="rtn-breadcrumb" aria-label="Fil d'Ariane">
+    <ol class="rtn-breadcrumb-list">
+        {% for item in items %}
+            <li class="rtn-breadcrumb-item {% if loop.last %}rtn-breadcrumb-current{% endif %}">
+                {% if not loop.last and item.url|default(null) %}
+                    <a href="{{ item.url }}" data-turbo="false">{{ item.label }}</a>
+                {% else %}
+                    <span aria-current="{% if loop.last %}page{% endif %}">{{ item.label }}</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>
+<style>
+.rtn-breadcrumb {
+    max-width: 1180px;
+    margin: 0 auto 16px;
+    padding: 8px 16px;
+    background: #1b2435;
+    border: 1px solid #3b465c;
+    border-radius: 8px;
+    font-size: .88rem;
+}
+.rtn-breadcrumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.rtn-breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #d8dee9;
+}
+.rtn-breadcrumb-item + .rtn-breadcrumb-item::before {
+    content: "›";
+    color: #88c0d0;
+    font-weight: 700;
+}
+.rtn-breadcrumb-item a {
+    color: #88c0d0;
+    text-decoration: none;
+}
+.rtn-breadcrumb-item a:hover {
+    text-decoration: underline;
+    color: #b9e6ef;
+}
+.rtn-breadcrumb-current span {
+    color: #eceff4;
+    font-weight: 600;
+}
+</style>
+{% endif %}

@@ -4,6 +4,14 @@
 
 {% block body %}
 <main class="rtn-page">
+    {% include '_partials/breadcrumb.html.twig' with {
+        items: [
+            { label: 'Tunisie', url: path('map_index') },
+            { label: selectedMachine ? selectedMachine.site.name : null, url: selectedMachine and selectedMachine.site ? path('site_show', {id: selectedMachine.site.id}) : null },
+            { label: selectedMachine ? selectedMachine.name : null },
+            { label: 'Déclarer une panne' }
+        ]
+    } only %}
     <nav class="rtn-nav">
         <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
         <a href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes déclarées</a>

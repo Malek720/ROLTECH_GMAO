@@ -2,11 +2,18 @@
 
 {% block title %}Espace Technicien{% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap('map') }}
+{% endblock %}
+
 {% block body %}
 <main class="rtn-dashboard">
     <header class="rtn-dashboard-header">
         <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Technicien</h1></div>
         <nav class="rtn-dashboard-actions">
+            <a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a>
+            <a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a>
             <a class="rtn-button rtn-button-large" href="{{ path('interventions_mine') }}" data-turbo="false">Mes interventions</a>
             <a class="rtn-button rtn-button-large" href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes</a>
             <a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
@@ -19,6 +26,7 @@
         <a class="rtn-dashboard-card rtn-action-card" href="{{ path('interventions_mine', {status: 'en cours'}) }}" data-turbo="false"><strong>En cours</strong><span>{{ interventions|filter(i => i.status == 'en cours')|length }}</span><small>Reprendre une intervention</small></a>
         <a class="rtn-dashboard-card rtn-action-card" href="{{ path('fault_new') }}" data-turbo="false"><strong>Nouvelle panne</strong><span>+</span><small>Déclarer un incident</small></a>
     </section>
+    {{ render(controller('App\\Controller\\MapController::card')) }}
     <section class="rtn-dashboard-card">
         <h2>Mes interventions</h2>
         {% for intervention in interventions %}

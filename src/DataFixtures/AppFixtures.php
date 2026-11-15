@@ -87,9 +87,15 @@ class AppFixtures extends Fixture
     /** @return array<string, Site> */
     private function createSites(ObjectManager $manager): array
     {
+        $siteCoords = [
+            'Sousse'   => [35.8256, 10.6084],
+            'Béja'     => [36.7256, 9.1817],
+            'Jendouba' => [36.5011, 8.7803],
+            'Tunis'    => [36.8065, 10.1815],
+        ];
         $sites = [];
-        foreach (['Sousse', 'Béja', 'Jendouba', 'Tunis'] as $name) {
-            $site = (new Site())->setName($name)->setCity($name);
+        foreach ($siteCoords as $name => [$lat, $lng]) {
+            $site = (new Site())->setName($name)->setCity($name)->setLatitude($lat)->setLongitude($lng);
             $manager->persist($site);
             $sites[$name] = $site;
         }

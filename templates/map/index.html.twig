@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Carte des sites — RolTech GMAO{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap('map') }}
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .rtn-map-wrapper {
+            position: relative;
+            max-width: 1180px;
+            margin: 0 auto 20px;
+            border: 1px solid #3b465c;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 12px 30px #00000040;
+            background: #1b2435;
+        }
+        #rtn-map {
+            width: 100%;
+            height: 600px;
+            background: #1b2435;
+        }
+        .rtn-map-legend {
+            max-width: 1180px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 14px 20px;
+            background: #252d3e;
+            border: 1px solid #3b465c;
+            border-radius: 12px;
+            font-size: .88rem;
+        }
+        .rtn-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rtn-legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .rtn-dot-red { background: #bf616a; }
+        .rtn-dot-orange { background: #d08770; }
+        .rtn-dot-green { background: #a3be8c; }
+        .leaflet-popup-content-wrapper {
+            background: #eceff4;
+            color: #2e3440;
+            border-radius: 8px;
+        }
+        .leaflet-popup-tip {
+            background: #eceff4;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<main class="rtn-page">
+    {% include '_partials/breadcrumb.html.twig' with {
+        items: [
+            { label: 'Tunisie', url: path('map_index') }
+        ]
+    } only %}
+
+    <header class="rtn-dashboard-header">
+        <div>
+            <p class="rtn-eyebrow">Navigation géographique</p>
+            <h1>Carte des sites de production</h1>
+        </div>
+        <nav class="rtn-dashboard-actions">
+            {% if is_granted('ROLE_RESPONSABLE') %}
+                <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+            {% elseif is_granted('ROLE_TECHNICIEN') %}
+                <a class="rtn-button rtn-button-large" href="{{ path('technicien_dashboard') }}" data-turbo="false">Tableau de bord</a>
+            {% endif %}
+            <a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a>
+        </nav>
+    </header>
+
+    <div class="rtn-map-legend">
+        <strong>Légende de criticité :</strong>
+        <span class="rtn-legend-item"><span class="rtn-legend-dot rtn-dot-red"></span> <strong>Critique / En panne</strong> (machine en arrêt ou panne critique ouverte)</span>
+        <span class="rtn-legend-item"><span class="rtn-legend-dot rtn-dot-orange"></span> <strong>Maintenance requise</strong> (tâche échue ou proche)</span>
+        <span class="rtn-legend-item"><span class="rtn-legend-dot rtn-dot-green"></span> <strong>Opérationnel</strong></span>
+    </div>
+
+    <section class="rtn-map-wrapper">
+        <div id="rtn-map"
+             data-sites="{{ sitesJson|e('html_attr') }}"
+             data-geojson-url="{{ asset('tunisia.geojson') }}"
+             data-turbo="false">
+        </div>
+    </section>
+</main>
+{% endblock %}

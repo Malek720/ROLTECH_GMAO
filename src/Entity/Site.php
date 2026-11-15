@@ -21,6 +21,12 @@ class Site
     #[ORM\Column(length: 255)]
     private ?string $city = null;
 
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $latitude = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $longitude = null;
+
     /** @var Collection<int, Machine> */
     #[ORM\OneToMany(targetEntity: Machine::class, mappedBy: 'site')]
     private Collection $machines;
@@ -40,6 +46,10 @@ class Site
     public function setName(string $name): static { $this->name = $name; return $this; }
     public function getCity(): ?string { return $this->city; }
     public function setCity(string $city): static { $this->city = $city; return $this; }
+    public function getLatitude(): ?float { return $this->latitude; }
+    public function setLatitude(?float $latitude): static { $this->latitude = $latitude; return $this; }
+    public function getLongitude(): ?float { return $this->longitude; }
+    public function setLongitude(?float $longitude): static { $this->longitude = $longitude; return $this; }
 
     /** @return Collection<int, Machine> */
     public function getMachines(): Collection { return $this->machines; }

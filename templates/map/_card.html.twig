@@ -1,0 +1,16 @@
+{# Compact map card for dashboards (Phase 6) #}
+<article class="rtn-dashboard-card rtn-map-card">
+    <div class="rtn-page-heading" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+            <h2 style="margin:0;">Carte des sites</h2>
+            <p style="margin:4px 0 0;color:#d8dee9;font-size:.9rem;">Surveillance géographique de l'état des sites</p>
+        </div>
+        <a class="rtn-button" href="{{ path('map_index') }}" data-turbo="false">Plein écran</a>
+    </div>
+    <div class="rtn-map-widget"
+         style="width:100%;height:260px;border-radius:10px;overflow:hidden;border:1px solid #3b465c;background:#1b2435;"
+         data-sites="{{ sitesJson|default('[]')|e('html_attr') }}"
+         data-geojson-url="{{ asset('tunisia.geojson') }}"
+         data-turbo="false">
+    </div>
+</article>
