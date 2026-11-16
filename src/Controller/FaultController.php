@@ -49,9 +49,50 @@ final class FaultController extends AbstractController
             }
         }
         $selectedMachine = $machineById[$machineId] ?? null;
-        if ($request->isMethod('GET') && $machineId > 0 && !$selectedMachine instanceof Machine) {
-            $errors['machine'] = 'Cette machine n’est pas accessible avec votre compte.';
-            $data['machine'] = '';
+        if ($request->isMethod('GET')) {
+            if ($request->query->has('machine') && $machineId > 0 && !$selectedMachine instanceof Machine) {
+                $errors['machine'] = 'Cette machine n’est pas accessible avec votre compte.';
+                $this->addFlash('warning', 'La machine demandée n’est pas accessible avec votre compte.');
+                $data['machine'] = '';
+                $selectedMachine = null;
+            }
+
+            if ($selectedMachine instanceof Machine) {
+                if ($request->query->has('module')) {
+                    $queryModuleId = (int) $request->query->get('module');
+                    if ($queryModuleId > 0) {
+                        $candidateModule = $entityManager->getRepository(MachineModule::class)->find($queryModuleId);
+                        if (
+                            $candidateModule instanceof MachineModule
+                            && $candidateModule->getMachineModel()?->getId() === $selectedMachine->getMachineModel()?->getId()
+                        ) {
+                            $data['module'] = $candidateModule->getId();
+                        } else {
+                            $this->addFlash('warning', 'Le module demandé n’appartient pas au modèle de cette machine.');
+                            unset($data['module']);
+                        }
+                    }
+                }
+
+                if ($request->query->has('part')) {
+                    $queryPartId = (int) $request->query->get('part');
+                    if ($queryPartId > 0) {
+                        $candidatePart = $entityManager->getRepository(Part::class)->find($queryPartId);
+                        if (
+                            $candidatePart instanceof Part
+                            && $candidatePart->getModule()?->getMachineModel()?->getId() === $selectedMachine->getMachineModel()?->getId()
+                        ) {
+                            $data['part'] = $candidatePart->getId();
+                            if (empty($data['module'])) {
+                                $data['module'] = $candidatePart->getModule()?->getId();
+                            }
+                        } else {
+                            $this->addFlash('warning', 'La pièce demandée n’appartient pas au modèle de cette machine.');
+                            unset($data['part']);
+                        }
+                    }
+                }
+            }
         }
         $machineGroups = [];
         foreach ($machines as $machine) {

@@ -106,8 +106,13 @@
     </section>
 
     <section class="rtn-card">
-        <h2>Chronologie</h2>
-        <ol class="rtn-timeline">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h2 style="margin: 0;">Chronologie{% if selectedModule %} — Module : {{ selectedModule.name }}{% endif %}</h2>
+            {% if selectedModule %}
+                <a href="{{ path('machine_fiche', {id: machine.id}) }}" class="rtn-button rtn-button-secondary" style="padding: 4px 10px; font-size: .85rem;">Afficher tout</a>
+            {% endif %}
+        </div>
+        <ol class="rtn-timeline" style="margin-top: 15px;">
             {% for event in timeline %}<li><time>{{ event.date|date('d/m/Y H:i') }}</time><div><strong>{{ event.kind }}</strong><span>{{ event.label }}</span>{% include 'components/status_badge.html.twig' with {status: event.status} only %}</div></li>{% else %}<li>Aucun événement enregistré.</li>{% endfor %}
         </ol>
     </section>

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Machine;
+use App\Entity\MachineModule;
 use App\Repository\MachineModuleRepository;
 use App\Service\QrCodeService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -51,9 +52,24 @@ final class MachineFicheController extends AbstractController
             }
         }
 
+        $selectedModuleId = $request->query->getInt('module', 0);
+        $selectedModule = null;
+        if ($selectedModuleId > 0 && $machine->getMachineModel() !== null) {
+            $candidate = $moduleRepository->find($selectedModuleId);
+            if ($candidate instanceof MachineModule && (int) $candidate->getMachineModel()?->getId() === (int) $machine->getMachineModel()->getId()) {
+                $selectedModule = $candidate;
+            }
+        }
+
         $modules = $machine->getMachineModel() === null ? [] : $moduleRepository->findForModel($machine->getMachineModel());
         $timeline = [];
         foreach ($machine->getFaults() as $fault) {
+            if ($selectedModule !== null) {
+                $faultModuleId = $fault->getModule()?->getId() ?? $fault->getPart()?->getModule()?->getId();
+                if ($faultModuleId !== $selectedModule->getId()) {
+                    continue;
+                }
+            }
             $timeline[] = ['date' => $fault->getReportedAt(), 'kind' => 'Panne', 'label' => $fault->getDescription(), 'status' => $fault->getStatus(), 'fault' => $fault];
             foreach ($fault->getInterventions() as $intervention) {
                 $timeline[] = ['date' => $intervention->getEndDate() ?? $intervention->getStartDate(), 'kind' => 'Intervention', 'label' => (string) $intervention, 'status' => $intervention->getStatus(), 'intervention' => $intervention];
@@ -62,6 +78,13 @@ final class MachineFicheController extends AbstractController
         foreach ($machine->getMaintenanceSchedules() as $schedule) {
             if ($schedule->getArchivedAt() !== null) {
                 continue;
+            }
+            if ($selectedModule !== null) {
+                $task = $schedule->getTask();
+                $schedModuleId = $task?->getModule()?->getId() ?? $task?->getPart()?->getModule()?->getId();
+                if ($schedModuleId !== $selectedModule->getId()) {
+                    continue;
+                }
             }
             foreach ($schedule->getInterventions() as $intervention) {
                 $timeline[] = ['date' => $intervention->getEndDate() ?? $intervention->getStartDate(), 'kind' => 'Tâche terminée', 'label' => (string) $schedule->getTask(), 'status' => $intervention->getStatus(), 'intervention' => $intervention];
@@ -72,6 +95,7 @@ final class MachineFicheController extends AbstractController
         $response = $this->render('machine/fiche.html.twig', [
             'machine' => $machine,
             'modules' => $modules,
+            'selectedModule' => $selectedModule,
             'openFaults' => $machine->getFaults()->filter(static fn ($fault): bool => $fault->getStatus() !== 'resolue'),
             'upcomingSchedules' => $machine->getMaintenanceSchedules()->filter(static fn ($schedule): bool => $schedule->getArchivedAt() === null),
             'maintenanceHistory' => $machine->getMaintenanceSchedules()->filter(static fn ($schedule): bool => $schedule->getArchivedAt() === null && $schedule->getInterventions()->exists(static fn ($key, $intervention): bool => $intervention->getStatus() === 'terminee')),

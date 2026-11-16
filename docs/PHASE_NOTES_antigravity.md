@@ -40,3 +40,24 @@ Phase 6 implements the Tunisia map and navigation:
 6. **Tests**:
    - Pure unit tests in `tests/Unit/SiteMapDataProviderTest.php` covering color priority, faults, schedules, and permissions.
    - Self-contained database functional tests in `tests/Functional/MapAndNavigationTest.php` on `roltech_gmao_copy_test` asserting role scoping, 403 checks, machine filtering, and breadcrumbs. Repeatable twice in a row.
+
+## Phase 7: 3D Viewer & Module Health
+
+### Step 7.2: Backend Implementation
+- `ModuleHealthProvider`:
+  - Pure service computing module health (`echue` > `proche` > `ok`) from active maintenance schedules (`archivedAt IS NULL`).
+  - Bottom-up recursive health propagation across arbitrary nesting levels (tested across 3 levels: M1 -> M2 -> M3).
+  - Constant query count: 3 DQL queries to load modules/parts, active schedules/tasks, and open faults.
+  - Formats flat module tree with `parentId`, `openFaults` count, `nextTask` with action and ISO 8601 `dueAt`.
+- `MachineViewerController`:
+  - `GET /parc/{id}/viewer-data` under `^/parc` (`ROLE_TECHNICIEN`).
+  - Object-level authorization: 403 for techniciens on other sites, 200 for their own site and for responsable/admin.
+- `FaultController`:
+  - Supports `?machine=<id>&module=<id>&part=<id>` prefilling on `GET /faults/new`.
+  - Server-side validation against machine accessibility (rule 26) and model matching (rule 33).
+  - Invalid parameters trigger warning flashes and are cleanly ignored without crashing.
+- `MachineFicheController`:
+  - Scoped timeline filtering via read-only `?module=<id>` query parameter (invalid IDs safely ignored).
+- Tests:
+  - `tests/Unit/ModuleHealthProviderTest.php` (health ranking logic).
+  - `tests/Functional/MachineViewerApiTest.php` (role scoping, JSON structure, 2-level health propagation, archived schedule exclusion, fault form prefill, timeline filtering).
