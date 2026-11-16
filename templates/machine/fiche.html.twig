@@ -2,6 +2,11 @@
 
 {% block title %}Fiche {{ machine.serialNumber }}{% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap('viewer') }}
+{% endblock %}
+
 {% block stylesheets %}
     {{ parent() }}
     <style>
@@ -21,6 +26,26 @@
             .rtn-qr-print-title { display: block; grid-column: 1 / -1; margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: #000; }
             .rtn-qr-url { color: #000; }
         }
+        /* 3D Viewer */
+        .rtn-viewer-container {
+            width: 100%;
+            height: 480px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #1b2435;
+            border: 1px solid #3b465c;
+        }
+        .rtn-viewer-fallback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #88c0d0;
+            font-size: .95rem;
+            padding: 20px;
+            text-align: center;
+        }
+        @media (max-width: 700px) { .rtn-viewer-container { height: 320px; } }
     </style>
 {% endblock %}
 
@@ -80,6 +105,20 @@
                     <ul>{% for part in module.parts %}<li>{{ part.partNumber ?: 'référence à confirmer' }} — {{ part.description }}{% include 'components/status_badge.html.twig' with {status: part.dataStatus} only %}</li>{% else %}<li>Aucune pièce renseignée.</li>{% endfor %}</ul>
                 </article>
             {% else %}<p>Aucun module pour ce modèle.</p>{% endfor %}
+        </div>
+    </section>
+
+    <section class="rtn-card">
+        <h2>Vue schématique 3D</h2>
+        <div
+            class="rtn-viewer-container"
+            data-rtn-viewer
+            data-url="{{ path('parc_machine_viewer_data', {id: machine.id}) }}"
+            aria-label="Visualisation schématique 3D des modules de la machine {{ machine.name }}"
+        >
+            <div class="rtn-viewer-fallback" aria-live="polite">
+                Chargement de la vue 3D…
+            </div>
         </div>
     </section>
 

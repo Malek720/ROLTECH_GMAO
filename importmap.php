@@ -36,4 +36,14 @@ return [
         'path' => './assets/map.js',
         'entrypoint' => true,
     ],
+    'three' => [
+        'version' => '0.169.0',
+    ],
+    'three/addons/controls/OrbitControls.js' => [
+        'version' => '0.169.0',
+    ],
+    'viewer' => [
+        'path' => './assets/viewer-page.js',
+        'entrypoint' => true,
+    ],
 ];
