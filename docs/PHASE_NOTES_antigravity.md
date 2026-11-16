@@ -61,3 +61,9 @@ Phase 6 implements the Tunisia map and navigation:
 - Tests:
   - `tests/Unit/ModuleHealthProviderTest.php` (health ranking logic).
   - `tests/Functional/MachineViewerApiTest.php` (role scoping, JSON structure, 2-level health propagation, archived schedule exclusion, fault form prefill, timeline filtering).
+
+### Step 7.3: Shapes and Per-Model Configs
+- `assets/viewer/builder.js`: procedural schematic shapes generator (`rail`, `traction`, `trolley`, `return180`, `return90`, `motor`, `tensioner`, `pulley`, `carrier`, `dryer`, `block`) using low-poly `MeshStandardMaterial` primitives.
+- `assets/viewer/models/*.config.js`: 5 configurations covering OC-CA1100, HLS-CA1100, HLS-PXL-CA1100, HLS-PXL-CA1100-01, and PPXXL-CA1100 with accurate French labels and module codes from fixtures, x-axis layout, explosion vectors, and camera focus.
+- `assets/viewer/generic.js`: deterministic 3-column grid fallback for press (HP-2000X), compressor (AirMax-300), and unknown models.
+- `assets/viewer/configs.js`: dynamic loader with literal imports for AssetMapper and automatic fallback.
