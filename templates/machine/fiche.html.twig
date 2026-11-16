@@ -4,7 +4,7 @@
 
 {% block javascripts %}
     {{ parent() }}
-    {{ importmap('viewer') }}
+    {{ importmap(['viewer', 'viewer-panel']) }}
 {% endblock %}
 
 {% block stylesheets %}
@@ -19,33 +19,13 @@
         @media (max-width: 700px) { .rtn-qr { grid-template-columns: 1fr; } .rtn-qr-code { justify-self: start; } }
         @media print {
             /* Only the useful information is printed: the machine identity and its QR code. */
-            .rtn-bell, .rtn-global-search, .rtn-dashboard-actions, .rtn-fiche-edit-form, .rtn-toasts { display: none !important; }
+            .rtn-bell, .rtn-global-search, .rtn-dashboard-actions, .rtn-fiche-edit-form, .rtn-toasts, .rtn-viewer-section, .rtn-viewer-layout { display: none !important; }
             .rtn-page, .rtn-card, .rtn-qr { background: #fff !important; color: #000 !important; box-shadow: none !important; border-color: #999 !important; }
             .rtn-qr { grid-template-columns: minmax(0, 1fr) 200px; }
             .rtn-qr-code svg { background: #fff; padding: 0; }
             .rtn-qr-print-title { display: block; grid-column: 1 / -1; margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: #000; }
             .rtn-qr-url { color: #000; }
         }
-        /* 3D Viewer */
-        .rtn-viewer-container {
-            width: 100%;
-            height: 480px;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #1b2435;
-            border: 1px solid #3b465c;
-        }
-        .rtn-viewer-fallback {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #88c0d0;
-            font-size: .95rem;
-            padding: 20px;
-            text-align: center;
-        }
-        @media (max-width: 700px) { .rtn-viewer-container { height: 320px; } }
     </style>
 {% endblock %}
 
@@ -108,18 +88,12 @@
         </div>
     </section>
 
-    <section class="rtn-card">
+    <section class="rtn-card rtn-viewer-section">
         <h2>Vue schématique 3D</h2>
-        <div
-            class="rtn-viewer-container"
-            data-rtn-viewer
-            data-url="{{ path('parc_machine_viewer_data', {id: machine.id}) }}"
-            aria-label="Visualisation schématique 3D des modules de la machine {{ machine.name }}"
-        >
-            <div class="rtn-viewer-fallback" aria-live="polite">
-                Chargement de la vue 3D…
-            </div>
-        </div>
+        {% include '_partials/machine_viewer.html.twig' with {
+            machine: machine,
+            canSeeTimeline: true
+        } only %}
     </section>
 
     <section class="rtn-card">

@@ -2,6 +2,11 @@
 
 {% block title %}Déclarer une panne{% endblock %}
 
+{% block javascripts %}
+    {{ parent() }}
+    {{ importmap(['viewer', 'viewer-panel']) }}
+{% endblock %}
+
 {% block body %}
 <main class="rtn-page">
     {% include '_partials/breadcrumb.html.twig' with {
@@ -38,6 +43,19 @@
                     {% for model in modelsById %}<span data-model-badge="{{ model.id }}" {% if selectedMachine is null or selectedMachine.machineModel.id != model.id %}hidden{% endif %}>{% include 'components/status_badge.html.twig' with {status: model.dataStatus} only %}</span>{% endfor %}
                 </span>
             </label>
+            <div class="rtn-form-field rtn-form-field-full">
+                <details class="rtn-viewer-collapsible" id="rtn-fault-viewer-collapsible">
+                    <summary class="rtn-button rtn-button-secondary" style="min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; width: auto; margin-bottom: 8px;">
+                        <i class="fa fa-cube" style="margin-right: 8px;"></i> Choisir sur le schéma 3D
+                    </summary>
+                    <div style="margin-top: 10px;">
+                        {% include '_partials/machine_viewer.html.twig' with {
+                            machine: selectedMachine,
+                            canSeeTimeline: false
+                        } only %}
+                    </div>
+                </details>
+            </div>
             <label class="rtn-form-field">Module
                 <select name="fault[module]">
                     <option value="">Aucun</option>
@@ -136,5 +154,66 @@ function rtnRenderTroubleshooting() {
 }
 rtnSymptomSelect.addEventListener('change', rtnRenderTroubleshooting);
 rtnRenderTroubleshooting();
+
+// ── Viewer integration for fault form (Step 7.5) ──────────────────────────
+const rtnFaultViewerCollapsible = document.getElementById('rtn-fault-viewer-collapsible');
+if (rtnFaultViewerCollapsible) {
+    // When a module is selected from the 3D viewer or 2D tree, update the dropdowns
+    rtnFaultViewerCollapsible.addEventListener('rtn:module-selected', (e) => {
+        const moduleId = e.detail?.moduleId;
+        const rtnModuleSelect = document.querySelector('select[name="fault[module]"]');
+        const rtnPartSelect = document.querySelector('select[name="fault[part]"]');
+        if (rtnModuleSelect && moduleId) {
+            rtnModuleSelect.value = String(moduleId);
+            if (rtnPartSelect) {
+                rtnPartSelect.value = '';
+            }
+            rtnModuleSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    // When the machine dropdown changes, update the viewer data URL
+    if (rtnMachineSelect) {
+        rtnMachineSelect.addEventListener('change', () => {
+            const machineId = rtnMachineSelect.value;
+            const container = rtnFaultViewerCollapsible.querySelector('[data-rtn-viewer]');
+            const wrapper = rtnFaultViewerCollapsible.querySelector('[data-rtn-viewer-wrapper]');
+            const noMachineHint = rtnFaultViewerCollapsible.querySelector('[data-rtn-no-machine]');
+            if (!container || !wrapper) return;
+
+            const oldUrl = container.dataset.url || null;
+            if (machineId) {
+                const newUrl = '/parc/' + encodeURIComponent(machineId) + '/viewer-data';
+                container.dataset.url = newUrl;
+                wrapper.dataset.machineId = machineId;
+                if (noMachineHint) {
+                    noMachineHint.textContent = 'Chargement de la vue 3D…';
+                    noMachineHint.classList.remove('rtn-viewer-no-machine');
+                }
+                // Reinit the panel via the exposed helper (never re-dispatch turbo:load globally)
+                if (window._rtnViewerPanel) {
+                    window._rtnViewerPanel.reinitWrapper(wrapper, oldUrl);
+                }
+            } else {
+                delete container.dataset.url;
+                delete wrapper.dataset.machineId;
+                if (oldUrl) {
+                    // evict stale cache entry when helper is ready
+                    if (window._rtnViewerPanel) {
+                        window._rtnViewerPanel.reinitWrapper(wrapper, oldUrl);
+                    }
+                }
+                if (noMachineHint) {
+                    noMachineHint.textContent = 'Veuillez sélectionner une machine pour charger la vue 3D.';
+                    noMachineHint.classList.add('rtn-viewer-no-machine');
+                }
+                const detailsContainer = wrapper.querySelector('[data-rtn-panel-details]');
+                const emptyHint = wrapper.querySelector('[data-rtn-panel-empty]');
+                if (detailsContainer) detailsContainer.hidden = true;
+                if (emptyHint) emptyHint.hidden = false;
+            }
+        });
+    }
+}
 </script>
 {% endblock %}

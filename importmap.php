@@ -46,4 +46,8 @@ return [
         'path' => './assets/viewer-page.js',
         'entrypoint' => true,
     ],
+    'viewer-panel' => [
+        'path' => './assets/viewer-panel.js',
+        'entrypoint' => true,
+    ],
 ];

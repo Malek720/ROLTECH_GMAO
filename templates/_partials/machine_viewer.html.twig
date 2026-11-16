@@ -1,0 +1,284 @@
+{# templates/_partials/machine_viewer.html.twig #}
+{# Parameters: machine (Machine|null), canSeeTimeline (bool) #}
+<div class="rtn-viewer-layout" data-rtn-viewer-wrapper data-can-see-timeline="{{ canSeeTimeline ? '1' : '0' }}" {% if machine %}data-machine-id="{{ machine.id }}"{% endif %}>
+    <div class="rtn-viewer-main-col">
+        <!-- 3D Canvas container -->
+        <div
+            class="rtn-viewer-container"
+            data-rtn-viewer
+            {% if machine %}data-url="{{ path('parc_machine_viewer_data', {id: machine.id}) }}"{% endif %}
+            aria-label="Visualisation schématique 3D des modules{% if machine %} de la machine {{ machine.name }}{% endif %}"
+        >
+            {% if not machine %}
+                <div class="rtn-viewer-fallback rtn-viewer-no-machine" data-rtn-no-machine aria-live="polite">
+                    Veuillez sélectionner une machine pour charger la vue 3D.
+                </div>
+            {% else %}
+                <div class="rtn-viewer-fallback" aria-live="polite">
+                    Chargement de la vue 3D…
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 2D Fallback container (hidden by default, shown when WebGL is unsupported) -->
+        <div class="rtn-viewer-2d-fallback" data-rtn-viewer-fallback-2d hidden>
+            <p class="rtn-viewer-fallback-message">
+                <i class="fa fa-info-circle" aria-hidden="true"></i>
+                Affichage 3D non disponible sur cet appareil. Navigation 2D par arborescence :
+            </p>
+            <nav class="rtn-viewer-tree" aria-label="Arborescence des modules" data-rtn-viewer-tree>
+                <!-- Populated dynamically by viewer-panel.js -->
+            </nav>
+        </div>
+    </div>
+
+    <!-- Side panel (below canvas on mobile) -->
+    <aside class="rtn-viewer-panel" aria-label="Détails du module sélectionné" data-rtn-viewer-panel>
+        <!-- Panel header: model info (requirement 4) -->
+        <header class="rtn-viewer-panel-header" data-rtn-panel-header>
+            <div class="rtn-page-heading" style="margin-bottom: 6px;">
+                <h3 class="rtn-viewer-model-name" data-rtn-model-name style="margin: 0; font-size: 1.15rem;">
+                    {{ machine ? machine.machineModel.name : 'Modèle de machine' }}
+                </h3>
+                <span data-rtn-model-badge>
+                    {% if machine %}
+                        {% include 'components/status_badge.html.twig' with {status: machine.machineModel.dataStatus} only %}
+                    {% endif %}
+                </span>
+            </div>
+            <p class="rtn-viewer-load-limit" data-rtn-model-load style="margin: 0; font-size: .85rem; color: #88c0d0;">
+                Charge max. :
+                <span data-rtn-load-text>
+                    {{ machine ? (machine.machineModel.maxLoadKg is not null ? machine.machineModel.maxLoadKg ~ ' kg' : 'charge max. à confirmer') : 'charge max. à confirmer' }}
+                </span>
+            </p>
+        </header>
+
+        <!-- Live region for accessible announcement of selected module (requirement 2) -->
+        <div class="rtn-sr-only" aria-live="polite" data-rtn-panel-announcer></div>
+
+        <!-- Empty state hint when nothing is selected (requirement 1) -->
+        <div class="rtn-viewer-empty-hint" data-rtn-panel-empty>
+            <p><i class="fa fa-hand-pointer" aria-hidden="true" style="margin-right: 6px;"></i>Sélectionnez un module sur le schéma 3D ou dans la liste pour afficher ses détails, ses pièces et son état.</p>
+        </div>
+
+        <!-- Module details container (hidden until selection) -->
+        <div class="rtn-viewer-module-details" data-rtn-panel-details hidden>
+            <div class="rtn-page-heading" style="margin-bottom: 8px;">
+                <div>
+                    <span class="rtn-eyebrow" data-rtn-module-code></span>
+                    <h4 class="rtn-viewer-module-title" data-rtn-module-name style="margin: 0; font-size: 1.1rem;"></h4>
+                </div>
+                <span data-rtn-module-badge></span>
+            </div>
+
+            <!-- Health status block -->
+            <div class="rtn-viewer-info-row" style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <strong>État de maintenance :</strong>
+                <span data-rtn-module-health></span>
+            </div>
+
+            <!-- Next due task -->
+            <div class="rtn-viewer-info-row" style="margin-bottom: 8px; font-size: .9rem;">
+                <strong>Prochaine tâche :</strong>
+                <span data-rtn-module-task style="display: block; color: #d8dee9; margin-top: 2px;"></span>
+            </div>
+
+            <!-- Open fault count -->
+            <div class="rtn-viewer-info-row" style="margin-bottom: 12px; font-size: .9rem;">
+                <strong>Pannes en cours :</strong>
+                <span data-rtn-module-faults style="color: #d8dee9;"></span>
+            </div>
+
+            <!-- Parts list -->
+            <div class="rtn-viewer-parts-section" style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 6px 0; font-size: .95rem; color: #d8dee9;">Pièces du module :</h5>
+                <ul class="rtn-viewer-parts-list" data-rtn-module-parts style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">
+                </ul>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="rtn-viewer-actions" data-rtn-module-actions style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="#" class="rtn-button rtn-button-large rtn-viewer-action-fault" data-rtn-action-fault>
+                    <i class="fa fa-triangle-exclamation" style="margin-right: 6px;"></i>Déclarer une panne sur ce module
+                </a>
+                <a href="#" class="rtn-button rtn-button-secondary rtn-button-large rtn-viewer-action-timeline" data-rtn-action-timeline hidden>
+                    <i class="fa fa-timeline" style="margin-right: 6px;"></i>Voir l'historique
+                </a>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<style>
+.rtn-viewer-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+    gap: 20px;
+    align-items: start;
+    width: 100%;
+    margin-top: 10px;
+}
+.rtn-viewer-main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+.rtn-viewer-container {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    min-height: 320px;
+    max-height: 500px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1b2435;
+    border: 1px solid #3b465c;
+    position: relative;
+}
+.rtn-viewer-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #88c0d0;
+    font-size: .95rem;
+    padding: 20px;
+    text-align: center;
+}
+.rtn-viewer-panel {
+    background: #1b2435;
+    border: 1px solid #3b465c;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    color: #eceff4;
+}
+.rtn-viewer-panel-header {
+    border-bottom: 1px solid #2e3b52;
+    padding-bottom: 12px;
+}
+.rtn-viewer-empty-hint {
+    color: #88c0d0;
+    font-size: .9rem;
+    padding: 24px 12px;
+    text-align: center;
+    background: rgba(46, 59, 82, 0.3);
+    border-radius: 8px;
+    border: 1px dashed #3b465c;
+}
+.rtn-viewer-2d-fallback {
+    background: #1b2435;
+    border: 1px solid #3b465c;
+    border-radius: 10px;
+    padding: 16px;
+    color: #eceff4;
+}
+.rtn-viewer-fallback-message {
+    color: #ebcb8b;
+    font-size: .9rem;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.rtn-viewer-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rtn-viewer-tree-list {
+    list-style: none;
+    padding-left: 18px;
+    margin: 4px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rtn-viewer-tree-root {
+    padding-left: 0;
+}
+.rtn-viewer-tree-button {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 8px 12px;
+    background: #253147;
+    border: 1px solid #3b465c;
+    border-radius: 6px;
+    color: #eceff4;
+    cursor: pointer;
+    font-size: .9rem;
+}
+.rtn-viewer-tree-button:hover, .rtn-viewer-tree-button:focus-visible {
+    background: #2f3d56;
+    border-color: #88c0d0;
+    outline: 2px solid #88c0d0;
+}
+.rtn-viewer-tree-button.rtn-selected {
+    background: #3b465c;
+    border-color: #81a1c1;
+    font-weight: 600;
+}
+.rtn-viewer-part-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    background: #253147;
+    border: 1px solid #3b465c;
+    border-radius: 6px;
+    color: #eceff4;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .85rem;
+}
+.rtn-viewer-part-btn:hover, .rtn-viewer-part-btn:focus-visible {
+    background: #2f3d56;
+    border-color: #88c0d0;
+    outline: 2px solid #88c0d0;
+}
+.rtn-viewer-actions .rtn-button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.rtn-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+@media (max-width: 850px) {
+    .rtn-viewer-layout {
+        grid-template-columns: 1fr;
+    }
+    .rtn-viewer-container {
+        aspect-ratio: 4 / 3;
+        min-height: 280px;
+    }
+}
+@media (max-width: 400px) {
+    .rtn-viewer-container {
+        min-height: 220px;
+    }
+}
+@media print {
+    .rtn-viewer-layout, .rtn-viewer-collapsible {
+        display: none !important;
+    }
+}
+</style>
