@@ -1,0 +1,81 @@
+/**
+ * 3D Model Configuration: PPXXL-CA1100
+ * Demo model data from AppFixtures.php (painting line conveyor with drying zone M8).
+ */
+export default {
+    modelCode: 'PPXXL-CA1100',
+    modules: {
+        'M1': {
+            shape: 'return180',
+            label: 'Groupe de renvoi 180°',
+            color: 0x5e81ac,
+            position: [-7.0, 0, 0],
+            explodeAxis: [0, 1, 0],
+            explodeDistance: 2.2,
+            focus: { position: [-7.0, 1.6, 3.6], target: [-7.0, 0, 0] },
+        },
+        'M2': {
+            shape: 'return90',
+            label: 'Groupe de renvoi 90°',
+            color: 0x81a1c1,
+            position: [-5.0, 0, 0],
+            explodeAxis: [0, -1, 0],
+            explodeDistance: 2.0,
+            focus: { position: [-5.0, 1.6, 3.6], target: [-5.0, 0, 0] },
+        },
+        'M3': {
+            shape: 'motor',
+            label: 'Groupe motorisation tendeur',
+            color: 0xd08770,
+            position: [-3.0, 0, 0],
+            explodeAxis: [0, 1, 0],
+            explodeDistance: 2.5,
+            focus: { position: [-3.0, 1.8, 3.8], target: [-3.0, 0, 0] },
+        },
+        'M4': {
+            shape: 'pulley',
+            label: 'Module poulie',
+            color: 0x8fbcbb,
+            position: [-1.0, 0, 0],
+            explodeAxis: [0, -1, 0],
+            explodeDistance: 2.2,
+            focus: { position: [-1.0, 1.5, 3.5], target: [-1.0, 0, 0] },
+        },
+        'M5': {
+            shape: 'rail',
+            label: 'Tronçon',
+            color: 0xa3be8c,
+            position: [1.0, 0, 0],
+            explodeAxis: [0, 1, 0],
+            explodeDistance: 2.0,
+            focus: { position: [1.0, 1.5, 3.5], target: [1.0, 0, 0] },
+        },
+        'M6': {
+            shape: 'trolley',
+            label: 'Trolley',
+            color: 0xebcb8b,
+            position: [3.0, 0, 0],
+            explodeAxis: [0, -1, 0],
+            explodeDistance: 2.3,
+            focus: { position: [3.0, 1.5, 3.5], target: [3.0, 0, 0] },
+        },
+        'M7': {
+            shape: 'carrier',
+            label: 'Porteur de charge',
+            color: 0xb48ead,
+            position: [5.0, 0, 0],
+            explodeAxis: [0, 1, 0],
+            explodeDistance: 2.4,
+            focus: { position: [5.0, 1.6, 3.6], target: [5.0, 0, 0] },
+        },
+        'M8': {
+            shape: 'dryer',
+            label: 'Zone de séchage',
+            color: 0xbf616a,
+            position: [7.0, 0, 0],
+            explodeAxis: [0, -1, 0],
+            explodeDistance: 2.5,
+            focus: { position: [7.0, 1.8, 4.0], target: [7.0, 0, 0] },
+        },
+    },
+};
