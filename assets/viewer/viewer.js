@@ -81,7 +81,8 @@ export async function mountViewer(container, data) {
 
     // ── Build config ──────────────────────────────────────────────────────
     const modules = data.modules ?? [];
-    const modelCode = data.modelCode ?? '';
+    // API returns data.model.code, not data.modelCode
+    const modelCode = data.model?.code ?? data.modelCode ?? '';
     const config = await loadConfig(modelCode, modules);
 
     // ── Scene ─────────────────────────────────────────────────────────────

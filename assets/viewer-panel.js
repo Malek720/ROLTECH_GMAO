@@ -400,6 +400,11 @@ function teardownAll() {
  */
 function reinitWrapper(wrapper, oldUrl) {
     if (oldUrl) dataCache.delete(oldUrl);
+    // Destroy the existing 3D viewer before reinitialising to avoid RAF/listener leaks
+    const container = wrapper.querySelector('[data-rtn-viewer]');
+    if (container?.rtnViewer) {
+        container.rtnViewer.destroy();
+    }
     wrapper._rtnPanelInitialized = false;
     initWrapper(wrapper);
 }
