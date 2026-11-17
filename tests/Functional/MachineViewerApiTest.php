@@ -200,6 +200,62 @@ final class MachineViewerApiTest extends WebTestCase
         self::assertSame('Remplacement galet M3', $modulesByCode['M3']['nextTask']['action']);
     }
 
+    public function testMachineFicheRendersExactlyOneViewerWithDataUrl(): void
+    {
+        $this->client->loginUser($this->responsable);
+        $crawler = $this->client->request('GET', '/machines/'.$this->machineSousse->getId().'/fiche');
+        self::assertResponseIsSuccessful();
+
+        $viewerElements = $crawler->filter('[data-rtn-viewer]');
+        self::assertCount(1, $viewerElements, 'Fiche machine must contain exactly one [data-rtn-viewer] element.');
+
+        $dataUrl = $viewerElements->attr('data-url');
+        self::assertNotNull($dataUrl, '[data-rtn-viewer] must carry data-url.');
+        self::assertStringEndsWith('/parc/'.$this->machineSousse->getId().'/viewer-data', $dataUrl);
+    }
+
+    public function testFaultFormWithMachineParamRendersViewerDataUrl(): void
+    {
+        $this->client->loginUser($this->techSousse);
+        $crawler = $this->client->request('GET', '/faults/new?machine='.$this->machineSousse->getId());
+        self::assertResponseIsSuccessful();
+
+        $viewerElements = $crawler->filter('[data-rtn-viewer]');
+        self::assertCount(1, $viewerElements, 'Fault form must contain exactly one [data-rtn-viewer] element.');
+
+        $dataUrl = $viewerElements->attr('data-url');
+        self::assertNotNull($dataUrl, '[data-rtn-viewer] must carry data-url when machine is prefilled.');
+        self::assertStringEndsWith('/parc/'.$this->machineSousse->getId().'/viewer-data', $dataUrl);
+    }
+
+    public function testFaultFormWithoutMachineParamRendersValidOrNoDataUrlAndScopesTechnicien(): void
+    {
+        $this->client->loginUser($this->techSousse);
+        $crawler = $this->client->request('GET', '/faults/new');
+        self::assertResponseIsSuccessful();
+
+        $viewerElements = $crawler->filter('[data-rtn-viewer]');
+        self::assertCount(1, $viewerElements, 'Fault form must contain exactly one [data-rtn-viewer] element.');
+
+        $dataUrl = $viewerElements->attr('data-url');
+        // Contract: either no data-url attribute at all, or a valid URL ending in /parc/<id>/viewer-data, never empty string ""
+        if ($dataUrl !== null) {
+            self::assertNotSame('', $dataUrl, 'data-url must never be empty string.');
+            self::assertMatchesRegularExpression('#/parc/\d+/viewer-data$#', $dataUrl);
+        }
+
+        // Technicien scoping: option elements with data-viewer-url must only belong to Sousse site
+        $optionViewerUrls = $crawler->filter('select[name="fault[machine]"] option[data-viewer-url]')->each(
+            fn ($node) => $node->attr('data-viewer-url')
+        );
+
+        self::assertNotEmpty($optionViewerUrls);
+        foreach ($optionViewerUrls as $url) {
+            self::assertStringEndsWith('/parc/'.$this->machineSousse->getId().'/viewer-data', $url);
+            self::assertStringNotContainsString('/parc/'.$this->machineBeja->getId().'/viewer-data', $url);
+        }
+    }
+
     private function seedData(): void
     {
         $this->siteSousse = (new Site())->setName('Site Sousse')->setCity('Sousse')->setLatitude(35.82)->setLongitude(10.60);

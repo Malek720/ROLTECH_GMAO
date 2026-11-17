@@ -357,24 +357,27 @@ async function initWrapper(wrapper) {
     await loadData();
 
     // ── Handle WebGL unsupported event ────────────────────────────────────
-    container.addEventListener('rtn:viewer-unsupported', async () => {
-        container.style.display = 'none';
-        if (fallback2D) {
-            fallback2D.hidden = false;
-        }
-        if (!data) {
-            await loadData();
-        }
-    });
+    if (!container._rtnListenersAttached) {
+        container._rtnListenersAttached = true;
+        container.addEventListener('rtn:viewer-unsupported', async () => {
+            container.style.display = 'none';
+            if (fallback2D) {
+                fallback2D.hidden = false;
+            }
+            if (!data) {
+                await loadData();
+            }
+        });
 
-    // ── Handle module selection event ──────────────────────────────────────
-    container.addEventListener('rtn:module-selected', async (e) => {
-        const moduleId = e.detail?.moduleId ?? null;
-        if (!data) {
-            await loadData();
-        }
-        renderModulePanel(wrapper, container, data, moduleId);
-    });
+        // ── Handle module selection event ──────────────────────────────────────
+        container.addEventListener('rtn:module-selected', async (e) => {
+            const moduleId = e.detail?.moduleId ?? null;
+            if (!data) {
+                await loadData();
+            }
+            renderModulePanel(wrapper, container, data, moduleId);
+        });
+    }
 }
 
 function bootAll() {
@@ -407,6 +410,9 @@ function reinitWrapper(wrapper, oldUrl) {
     }
     wrapper._rtnPanelInitialized = false;
     initWrapper(wrapper);
+    if (container?.dataset.url) {
+        document.dispatchEvent(new CustomEvent('rtn:viewer-reinit', { bubbles: true }));
+    }
 }
 
 // ── Synchronous listener setup (rule 7) ────────────────────────────────────

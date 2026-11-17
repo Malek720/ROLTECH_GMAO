@@ -63,27 +63,16 @@ export async function mountViewer(container, data) {
         return;
     }
 
-    // ── Lazy imports (rule 7: NO listeners set up here, only inside this fn) ─
-    let THREE, OrbitControls;
     try {
-        [{ default: THREE }, { OrbitControls }] = await Promise.all([
-            import('three'),
-            import('three/addons/controls/OrbitControls.js'),
-        ]);
-    } catch (err) {
-        container.dispatchEvent(new CustomEvent('rtn:viewer-unsupported', {
-            bubbles: true,
-            detail: { reason: 'import-failed', error: err?.message },
-        }));
-        container._rtnViewerMounted = false;
-        return;
-    }
+        // ── Lazy imports (rule 7: NO listeners set up here, only inside this fn) ─
+        const THREE = await import('three');
+        const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
 
-    // ── Build config ──────────────────────────────────────────────────────
-    const modules = data.modules ?? [];
-    // API returns data.model.code, not data.modelCode
-    const modelCode = data.model?.code ?? data.modelCode ?? '';
-    const config = await loadConfig(modelCode, modules);
+        // ── Build config ──────────────────────────────────────────────────────
+        const modules = data.modules ?? [];
+        // API returns data.model.code, not data.modelCode
+        const modelCode = data.model?.code ?? data.modelCode ?? '';
+        const config = await loadConfig(modelCode, modules);
 
     // ── Scene ─────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
@@ -515,4 +504,12 @@ export async function mountViewer(container, data) {
     };
 
     container.dispatchEvent(new CustomEvent('rtn:viewer-ready', { bubbles: true }));
+    } catch (err) {
+        console.error('[RolTech Viewer] Error mounting 3D viewer:', err);
+        container.dispatchEvent(new CustomEvent('rtn:viewer-unsupported', {
+            bubbles: true,
+            detail: { reason: 'scene-init-failed', error: err?.message },
+        }));
+        container._rtnViewerMounted = false;
+    }
 }

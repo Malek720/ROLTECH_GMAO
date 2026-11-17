@@ -25,7 +25,6 @@ async function boot() {
 
     const url = container.dataset.url;
     if (!url) {
-        console.warn('[RolTech Viewer] [data-rtn-viewer] is missing data-url.');
         return;
     }
 
@@ -71,6 +70,10 @@ function teardown() {
 // ── Synchronous listener registration (rule 7) ────────────────────────────
 document.addEventListener('turbo:load', boot);
 document.addEventListener('turbo:before-cache', teardown);
+document.addEventListener('rtn:viewer-reinit', () => {
+    teardown();
+    boot();
+});
 
 // Also boot immediately if Turbo already fired (page loaded without Turbo navigation)
 if (document.readyState !== 'loading') {

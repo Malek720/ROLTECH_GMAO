@@ -34,7 +34,7 @@
                     <option value="">Sélectionner</option>
                     {% for group in machineGroups %}
                         <optgroup label="{{ group.site }}">
-                            {% for machine in group.machines %}<option value="{{ machine.id }}" data-machine-model="{{ machine.machineModel.id }}" data-model-status="{{ machine.machineModel.dataStatus }}" {% if data.machine|default('') == machine.id %}selected{% endif %}>{{ machine.machineModel.code }} — {{ machine }}</option>{% endfor %}
+                            {% for machine in group.machines %}<option value="{{ machine.id }}" data-viewer-url="{{ path('parc_machine_viewer_data', {id: machine.id}) }}" data-machine-model="{{ machine.machineModel.id }}" data-model-status="{{ machine.machineModel.dataStatus }}" {% if (selectedMachine and selectedMachine.id == machine.id) or data.machine|default('') == machine.id %}selected{% endif %}>{{ machine.machineModel.code }} — {{ machine }}</option>{% endfor %}
                         </optgroup>
                     {% endfor %}
                 </select>
@@ -183,8 +183,13 @@ if (rtnFaultViewerCollapsible) {
 
             const oldUrl = container.dataset.url || null;
             if (machineId) {
-                const newUrl = '/parc/' + encodeURIComponent(machineId) + '/viewer-data';
-                container.dataset.url = newUrl;
+                const selectedOpt = rtnMachineSelect.selectedOptions[0];
+                const newUrl = selectedOpt?.dataset.viewerUrl || '';
+                if (newUrl) {
+                    container.dataset.url = newUrl;
+                } else {
+                    delete container.dataset.url;
+                }
                 wrapper.dataset.machineId = machineId;
                 if (noMachineHint) {
                     noMachineHint.textContent = 'Chargement de la vue 3D…';
@@ -213,6 +218,27 @@ if (rtnFaultViewerCollapsible) {
                 if (emptyHint) emptyHint.hidden = false;
             }
         });
+
+        // Sync viewer URL if a machine was pre-selected (e.g. browser autofill)
+        if (rtnMachineSelect.value) {
+            const container = rtnFaultViewerCollapsible.querySelector('[data-rtn-viewer]');
+            const wrapper = rtnFaultViewerCollapsible.querySelector('[data-rtn-viewer-wrapper]');
+            if (container && !container.dataset.url) {
+                const selectedOpt = rtnMachineSelect.selectedOptions[0];
+                if (selectedOpt?.dataset.viewerUrl) {
+                    container.dataset.url = selectedOpt.dataset.viewerUrl;
+                    if (wrapper) wrapper.dataset.machineId = rtnMachineSelect.value;
+                    const noMachineHint = rtnFaultViewerCollapsible.querySelector('[data-rtn-no-machine]');
+                    if (noMachineHint) {
+                        noMachineHint.textContent = 'Chargement de la vue 3D…';
+                        noMachineHint.classList.remove('rtn-viewer-no-machine');
+                    }
+                    if (window._rtnViewerPanel) {
+                        window._rtnViewerPanel.reinitWrapper(wrapper);
+                    }
+                }
+            }
+        }
     }
 }
 </script>

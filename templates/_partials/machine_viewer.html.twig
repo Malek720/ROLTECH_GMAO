@@ -1,5 +1,12 @@
 {# templates/_partials/machine_viewer.html.twig #}
 {# Parameters: machine (Machine|null), canSeeTimeline (bool) #}
+{#
+    Contract: the element with [data-rtn-viewer] ALWAYS carries data-url when a machine
+    is known, rendered server-side with path() for the viewer-data route (never a hard-coded
+    path); viewer-page.js and viewer-panel.js read the URL from that same element.
+    If no machine is known, the element has no data-url attribute, shows the hint,
+    and viewer-page.js does nothing silently until a URL exists.
+#}
 <div class="rtn-viewer-layout" data-rtn-viewer-wrapper data-can-see-timeline="{{ canSeeTimeline ? '1' : '0' }}" {% if machine %}data-machine-id="{{ machine.id }}"{% endif %}>
     <div class="rtn-viewer-main-col">
         <!-- 3D Canvas container -->
