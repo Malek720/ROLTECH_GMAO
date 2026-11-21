@@ -193,3 +193,63 @@ Chunk 8d adds no route: it reuses the existing `fault_new` (`GET /faults/new?mac
 - KPI / search: no test for the 20-results-per-type cap or for a term matching more than 20 rows; Chart.js runs
   in the browser only (no chart test).
 
+## Phase 9a — README en français (branch `trae/phase9a`)
+
+Chunk 9a rewrites `README.md` in French only. No code, no schema, no dependency, no route change: only
+`README.md` and this notes file are edited.
+
+### Files added/changed
+
+- `README.md` — full rewrite in French (purpose, roles, stack and requirements, Windows/Linux install,
+  test accounts, tests, scheduling, project structure, demo-data note, confidentiality, known limitations).
+  Keeps the link to the public docs repo `https://github.com/Malek720/ROLTECH_STAGE_DOCS`.
+- `docs/PHASE_NOTES_trae.md` — this section.
+
+### Sources used (read-only)
+
+- `AGENTS.md`, `PROJECT_HANDOFF.md`, `docs/PHASE_NOTES_trae.md`, `docs/PHASE_NOTES_antigravity.md`,
+  `docs/REMAINING_PHASES.md`.
+- Routes read from `#[Route(...)]` in `src/Controller/**`.
+- `composer.json`, `.env`, `config/packages/doctrine.yaml` (dbname_suffix `_test`), `config/packages/framework.yaml`
+  (`router.default_uri: '%env(DEFAULT_URI)%'`), `importmap.php` (leaflet 1.9.4, three 0.169.0),
+  `src/Command/MaintenanceCheckCommand.php`, `phpunit.xml.dist`, `.gitignore` (`/assets/vendor/`).
+- The three files listed as confidential (`docs/oc-ca1100-data.md`, `docs/LEONI_2025v02.pdf`,
+  `src/DataFixtures/AppFixtures.php`) exist in this checkout but were **not opened** and nothing was copied
+  from them; the README only points to `AppFixtures.php` and contains no password.
+
+### Commands written in the README that were NOT verified
+
+No PHP, Composer or console command was executed while writing this chunk (explicit instruction). Every
+command below is written from the repository files and must be run by the user to be confirmed:
+
+1. `git clone https://github.com/Malek720/ROLTECH_GMAO.git`
+2. `cd ROLTECH_GMAO`
+3. `composer install` (expected to run the `auto-scripts`, including `importmap:install` — taken from
+   `composer.json`, not executed)
+4. `php bin/console importmap:install`
+5. `php bin/console doctrine:database:create`
+6. `php bin/console doctrine:migrations:migrate`
+7. `php bin/console doctrine:fixtures:load` (warns: wipes all tables)
+8. `symfony serve`
+9. `php -S 127.0.0.1:8000 -t public`
+10. `php bin/console doctrine:database:create --env=test`
+11. `php bin/console doctrine:schema:create --env=test`
+12. `php bin/console doctrine:schema:drop --env=test --force`
+13. `php vendor/bin/phpunit`
+14. `php vendor/bin/phpunit --testdox`
+15. `php bin/console app:maintenance:check`
+16. `schtasks /Create /TN "RolTech GMAO - maintenance" /SC HOURLY /TR "C:\chemin\vers\maintenance.bat"`
+17. `crontab -e` then `0 * * * * cd /chemin/vers/ROLTECH_GMAO && php bin/console app:maintenance:check >> var/log/maintenance-check.log 2>&1`
+18. The `maintenance.bat` content (`C:\xampp\php\php.exe bin\console app:maintenance:check`).
+
+Not verifiable without running anything (stated as facts in the README, from the code):
+
+- The test database name is the configured database name + `_test` (per `dbname_suffix` in
+  `config/packages/doctrine.yaml`).
+- `assets/vendor/` is git-ignored (per `.gitignore`) and is recreated by `importmap:install`.
+- `app:maintenance:check` is idempotent (per `MaintenancePlanner`/`AGENTS.md` rule 14).
+- Font Awesome icons load from a CDN (per phase-7 review F8; the `fa-*` classes are used in
+  `templates/components/status_badge.html.twig`, `templates/_partials/machine_viewer.html.twig`,
+  `assets/viewer-panel.js` and the EasyAdmin menu). Not re-verified in the browser.
+- No `.glb` loading: `assets/models/` does not exist and `viewer.js` is procedural only.
+
