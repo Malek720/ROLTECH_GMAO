@@ -217,3 +217,68 @@ Suite is idempotent. The 1 deprecation is pre-existing (not from phase 7).
 - Fault form → viewer → module dropdown binding — browser only.
 - Viewer resize when `<details>` opens — browser only.
 - GLB model loading — not implemented; no test.
+
+---
+
+## Phase 9b design brief
+
+### 1. App Shell & Layout
+- **Desktop (>= 1100px)**: Left sidebar echoing the EasyAdmin / Nord dashboard aesthetic:
+  - Header: RolTech GMAO brand mark (gradient `#88c0d0` to `#5e81ac`), application title, user role indicator.
+  - Navigation: Vertical menu with an icon next to every label, hover states, active indicator styling.
+  - Footer: User profile info block and logout action (`path('app_logout')`).
+  - Topbar above main content: Slim utility bar containing breadcrumb (`_partials/breadcrumb.html.twig`), global search trigger/input (`_partials/global_search.html.twig`), notification bell (`#rtn-bell`), and compact user menu.
+- **Tablet (640px – 1100px)**: Sidebar collapses to an icon rail with accessible tooltips/names (`aria-label`, `title`).
+- **Phone (< 640px)**:
+  - **Technicien**: Fixed bottom tab bar with 5 primary touch targets (Tableau de bord, Mes interventions, Déclarer une panne, Carte, Notifications with badge) + a "Plus" button opening a slide-over drawer for secondary links (Mes pannes, Parc machines, Déconnexion).
+  - **Responsable**: Slim top bar with a menu hamburger button opening a full slide-over drawer containing all navigation items.
+- **Role Scoping**:
+  - *Technicien*: Tableau de bord (`technicien_dashboard`), Carte (`map_index`), Parc machines (`machine_list`), Mes interventions (`interventions_mine`), Mes pannes (`faults_mine`), Déclarer une panne (`fault_new`), Notifications (`notifications`).
+  - *Responsable*: Tableau de bord (`responsable_dashboard`), Carte (`map_index`), Parc machines (`machine_list`), Dispatch (`responsable_dispatch`), Plan de maintenance (`maintenance_plan`), Indicateurs KPI (`kpi_index`), Déclarer une panne (`fault_new`), Notifications (`notifications`).
+  - *Admin link*: Displays "Administration" (`admin`) when `is_granted('ROLE_ADMIN')`.
+  - Hiding links is strictly cosmetic (firewall and voters enforce authorization per rules 1 and 37).
+
+### 2. Notification Bell & Preserved Hooks
+- `#rtn-bell` and its counter element retain their IDs, structure, and data source (`notification_count()`).
+- Pinned `position: fixed` at top-right is removed; element moves cleanly into the topbar (desktop/tablet) and bottom tab bar / drawer (phone).
+- Complete preserved hooks list:
+  - **DOM & Form IDs/Classes**: `#rtn-bell` (and notification counter), `#rtn-map`, `.rtn-map-widget`, `#rtn-kpi-data`, `#rtn-kpi-charts-root`, `#rtn-fault-viewer-collapsible`, `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url`, `.rtn-toasts[aria-live="polite"]`, `.rtn-toast`, `.rtn-toast-*`, `.rtn-field-error`, `ol.rtn-timeline`, `.rtn-breadcrumb`, `input[name="fault[_token]"]`, form field names `fault[*]`.
+  - **Data Attributes**: `[data-rtn-viewer]`, `data-url`, `data-machine-id`, `data-intervention-id`, `data-qr-url`, `data-model-visible`, `data-module`, `data-machine-model`, `data-viewer-url`, `data-sites`, `data-geojson-url`, `data-initialized`, `data-rtn-viewer-tree`, `data-rtn-viewer-wrapper`, `data-rtn-model-name`, `data-rtn-model-badge`, `data-rtn-load-text`, `data-rtn-panel-empty`, `data-rtn-panel-details`, `data-rtn-panel-announcer`, `data-rtn-module-code`, `data-rtn-module-name`, `data-rtn-module-badge`, `data-rtn-module-health`, `data-rtn-module-task`, `data-rtn-module-faults`, `data-rtn-module-parts`, `data-rtn-action-fault`, `data-rtn-action-timeline`, `data-can-see-timeline`, `data-rtn-no-machine`, `data-rtn-viewer-fallback-2d`, `data-turbo="false"`.
+  - **Print Rules**: `@media print { .rtn-viewer-layout, .rtn-viewer-section { display: none !important; } }`. Map and 3D viewer containers preserve their aspect ratios and min-dimensions.
+
+### 3. Inline SVG Icons & Attribution
+- Set: **Lucide Icons** ([lucide.dev](https://lucide.dev/)), ISC License, Copyright (c) Lucide Contributors; portions derived from Feather Icons, MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- Integration: Embedded inline SVG macro in `templates/_partials/icons.html.twig`: `{% macro icon(name, size = 20, class = '') %}`.
+- Icons used: `layout-dashboard`, `map`, `boxes`, `wrench`, `alert-triangle`, `plus-circle`, `git-pull-request`, `clipboard-list`, `bar-chart-3`, `bell`, `shield-check`, `log-out`, `search`, `menu`, `x`, `chevron-right`, `external-link`.
+
+### 4. Contrast & Accessibility (WCAG AA)
+- Verified via `tools/check-contrast.mjs` against WCAG AA criteria (>= 4.5:1 text, >= 3:1 UI borders / large text).
+- Resolved text contrast risks:
+  - Text on primary button `--rtn-primary` (`#5e81ac`): use dark label text `#020817` (>= 4.5:1) rather than white/light text.
+  - Text on danger badges/alerts on dark card: use lighter tint text (e.g. `#ffb4ab` / `#f38ba8`) while keeping brand `--rtn-danger` (`#bf616a`) for borders and icons.
+  - Links / text on dark cards: use `--rtn-accent` (`#88c0d0`) and hover (`#b9e6ef`) instead of dark `--rtn-primary`.
+  - Brand colors (`#5e81ac`, `#bf616a`, `#d08770`, `#a3be8c`) remain untouched for borders, icons, and large graphics (>= 3:1).
+
+### 5. Implementation Files
+- `assets/styles/rtn-ui.css`: Design tokens, layout shell, sidebar, topbar, bottom nav, cards, buttons, badges, tables, forms, toasts, motion.
+- `templates/_partials/icons.html.twig`: Inline SVG icon macro.
+- `templates/_partials/nav.html.twig`: Responsive navigation component (sidebar, topbar, drawer, mobile tab bar).
+- `assets/ui.js`: Vanilla JS for mobile drawer, collapsible rail, and toast auto-dismiss.
+- `tools/check-contrast.mjs`: Automated contrast verification script.
+
+### 6. Step Split & Roadmap
+- **Step 9b.2 (Design Tokens, Components, Icons & Contrast Script)**:
+  - Create `assets/styles/rtn-ui.css` (design tokens, button variants, badges, cards, toasts).
+  - Create `templates/_partials/icons.html.twig` with Lucide SVG paths.
+  - Create `tools/check-contrast.mjs` and execute contrast validation.
+  - Connect `assets/styles/rtn-ui.css` in `base.html.twig`.
+- **Step 9b.3 (Shell Layout, Navigation & Dashboards)**:
+  - Build `templates/_partials/nav.html.twig` (sidebar, topbar, mobile drawer/tabs).
+  - Create `assets/ui.js` (drawer toggling, accessibility).
+  - Integrate shell in `templates/base.html.twig`.
+  - Polish `templates/dashboard/technicien.html.twig` and `templates/dashboard/responsable.html.twig`.
+- **Step 9b.4 (Remaining Workflows & Template Refactoring)**:
+  - Refactor all remaining non-admin templates (`fault/*`, `intervention/*`, `notification/*`, `maintenance/plan`, `responsable/*`, `site/show`, `machine/index`, `machine/fiche`, `map/index`, `map/_card`, `kpi/index`, `search/results`).
+  - Move shared CSS from inline `<style>` blocks into `rtn-ui.css`.
+  - Make `.rtn-plan-table` responsive (stacked cards at <= 640px).
+  - Standardize header actions into clean `.rtn-actions` flex groups.
