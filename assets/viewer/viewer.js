@@ -236,6 +236,12 @@ export async function mountViewer(container, data) {
     }
     container.style.overflow = 'hidden';
 
+    // Hide initial loading / fallback message so the canvas is visible
+    const fallbackEl = container.querySelector('.rtn-viewer-fallback');
+    if (fallbackEl) {
+        fallbackEl.style.display = 'none';
+    }
+
     renderer.setSize(W, H);
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
     container.appendChild(renderer.domElement);
@@ -263,6 +269,22 @@ export async function mountViewer(container, data) {
         }
     });
     resizeObserver.observe(container);
+
+    // Sync camera & render if viewer is inside a <details> element that opens later
+    const parentDetails = container.closest('details');
+    const onDetailsToggle = () => {
+        if (parentDetails?.open) {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            if (width > 0 && height > 0) {
+                renderer.setSize(width, height);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+            }
+            requestRender();
+        }
+    };
+    parentDetails?.addEventListener('toggle', onDetailsToggle);
 
     // ── Selection & picking ───────────────────────────────────────────────
     const raycaster = new THREE.Raycaster();
@@ -456,6 +478,7 @@ export async function mountViewer(container, data) {
         if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
         resizeObserver.disconnect();
         intersectionObserver.disconnect();
+        parentDetails?.removeEventListener('toggle', onDetailsToggle);
         controls.dispose();
         renderer.domElement.removeEventListener('pointerdown', onPointerDown);
         renderer.domElement.removeEventListener('pointerup', onPointerUp);
@@ -480,6 +503,9 @@ export async function mountViewer(container, data) {
         renderer.domElement.remove();
         legend.remove();
         sliderWrapper.remove();
+        if (fallbackEl) {
+            fallbackEl.style.display = '';
+        }
         container.style.position = prevPosition;
 
         delete container.rtnViewer;
