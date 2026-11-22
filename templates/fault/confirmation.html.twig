@@ -1,16 +1,38 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Panne déclarée{% endblock %}
+{% block title %}Panne déclarée — RolTech GMAO{% endblock %}
 
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
-    <nav class="rtn-nav">
-        <a href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes déclarées</a>
-        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une autre panne</a>
-        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
-    </nav>
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Déclaration enregistrée</p>
+            <h1 class="rtn-page-title">
+                {{ icon('alert-triangle', 28) }}
+                Panne déclarée
+            </h1>
+            <p class="rtn-page-desc">Votre déclaration a bien été enregistrée et transmise à l'équipe maintenance.</p>
+        </div>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('faults_mine') }}" data-turbo="false">
+                {{ icon('alert-triangle', 18) }}
+                Mes pannes déclarées
+            </a>
+            <a class="rtn-btn rtn-btn-primary rtn-btn-sm" href="{{ path('fault_new') }}" data-turbo="false">
+                {{ icon('plus-circle', 18) }}
+                Déclarer une autre panne
+            </a>
+        </div>
+    </header>
+
     <section class="rtn-card">
-        <h1>Panne déclarée</h1>
+        <div class="rtn-card-header">
+            <h2 class="rtn-card-title">
+                {{ icon('clipboard-list', 20) }}
+                Récapitulatif du signalement
+            </h2>
+        </div>
         <p>Votre déclaration a bien été enregistrée. L’équipe de maintenance va examiner la panne et suivre l’intervention.</p>
         <dl class="rtn-detail-list">
             <dt>Machine</dt><dd>{{ fault.machine }}</dd>
@@ -21,9 +43,11 @@
             <dt>Technicien affecté</dt><dd>{{ intervention and intervention.technician ? intervention.technician.fullName : 'En attente d’affectation' }}</dd>
         </dl>
         {% if intervention and (not is_granted('ROLE_TECHNICIEN') or (intervention.technician and intervention.technician.id == app.user.id)) %}
-            <p id="intervention"><a class="rtn-button" href="{{ path('fault_intervention', {id: intervention.id}) }}">Voir l’intervention</a></p>
+            <p id="intervention" style="margin-top:16px;">
+                <a class="rtn-btn rtn-btn-primary rtn-button" href="{{ path('fault_intervention', {id: intervention.id}) }}">Voir l’intervention</a>
+            </p>
         {% endif %}
-        <p>Prochaine étape : le technicien affecté ou le responsable du site vous tiendra informé de la prise en charge.</p>
+        <p class="rtn-field-hint" style="margin-top:16px;">Prochaine étape : le technicien affecté ou le responsable du site vous tiendra informé de la prise en charge.</p>
     </section>
 </main>
 {% endblock %}
