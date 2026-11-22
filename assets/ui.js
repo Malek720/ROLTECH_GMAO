@@ -24,7 +24,7 @@
   /* ── Drawer ──────────────────────────────────────────────────────────*/
   function openDrawer() {
     var drawer = qs('#rtn-drawer');
-    var btn    = qs('#rtn-drawer-btn');
+    var btn    = qs('#rtn-drawer-btn') || qs('.rtn-drawer-btn');
     if (!drawer) return;
     _drawerOpen = true;
     drawer.hidden = false;
@@ -47,7 +47,7 @@
 
   function closeDrawer() {
     var drawer = qs('#rtn-drawer');
-    var btn    = qs('#rtn-drawer-btn');
+    var btn    = qs('#rtn-drawer-btn') || qs('.rtn-drawer-btn');
     if (!drawer) return;
     _drawerOpen = false;
     drawer.hidden = true;
@@ -96,6 +96,7 @@
   function animateStatCards() {
     if (prefersReducedMotion()) return;
     qsa('.rtn-stat-card').forEach(function (card, i) {
+      if (card.classList.contains('rtn-stat-card--animate')) return; // guard double-fire
       card.style.animationDelay = (i * 50) + 'ms';
       card.classList.add('rtn-stat-card--animate');
     });
@@ -108,9 +109,13 @@
       toast.dataset.rtnAutoDismiss = '1';
       setTimeout(function () {
         if (toast.parentNode) {
-          toast.style.transition = 'opacity 200ms ease-out';
-          toast.style.opacity = '0';
-          setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+          if (!prefersReducedMotion()) {
+            toast.style.transition = 'opacity 200ms ease-out';
+            toast.style.opacity = '0';
+            setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 220);
+          } else {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }
         }
       }, 5000);
     });
@@ -122,8 +127,9 @@
     _listenersAttached = true;
 
     // Open drawer via button click (delegated, works for both btn locations)
+    // #rtn-drawer-btn = responsable hamburger; .rtn-drawer-btn = technicien tab-more
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('#rtn-drawer-btn');
+      var btn = e.target.closest('#rtn-drawer-btn, .rtn-drawer-btn');
       if (btn) { openDrawer(); return; }
 
       var closeBtn = e.target.closest('#rtn-drawer-close');
