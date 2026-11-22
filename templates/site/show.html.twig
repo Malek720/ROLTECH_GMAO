@@ -1,66 +1,9 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
 {% block title %}Site {{ site.name }} — RolTech GMAO{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-        .rtn-zone-section {
-            margin-bottom: 28px;
-        }
-        .rtn-zone-title {
-            color: #88c0d0;
-            font-size: 1.2rem;
-            margin: 0 0 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #3b465c;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .rtn-machine-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 18px;
-        }
-        .rtn-site-machine-card {
-            background: #1b2435;
-            border: 1px solid #3b465c;
-            border-radius: 12px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .rtn-site-machine-card h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            color: #eceff4;
-        }
-        .rtn-card-meta {
-            display: grid;
-            gap: 6px;
-            font-size: .88rem;
-            color: #d8dee9;
-        }
-        .rtn-card-meta div {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-        .rtn-card-actions {
-            margin-top: auto;
-            padding-top: 10px;
-            border-top: 1px solid #3b465c;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-    </style>
-{% endblock %}
-
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
     {% include '_partials/breadcrumb.html.twig' with {
         items: [
@@ -69,20 +12,36 @@
         ]
     } only %}
 
-    <header class="rtn-dashboard-header">
+    <header class="rtn-page-header">
         <div>
             <p class="rtn-eyebrow">Site de production · {{ site.city }}</p>
-            <h1>{{ site.name }}</h1>
+            <h1 class="rtn-page-title">
+                {{ icon('map', 28) }}
+                {{ site.name }}
+            </h1>
+            <p class="rtn-page-desc">Visualisation du parc machines et des zones de production de ce site.</p>
         </div>
-        <nav class="rtn-dashboard-actions">
+        <div class="rtn-actions">
             {% if is_granted('ROLE_RESPONSABLE') %}
-                <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('responsable_dashboard') }}" data-turbo="false">
+                    {{ icon('layout-dashboard', 18) }}
+                    Tableau de bord
+                </a>
             {% elseif is_granted('ROLE_TECHNICIEN') %}
-                <a class="rtn-button rtn-button-large" href="{{ path('technicien_dashboard') }}" data-turbo="false">Tableau de bord</a>
+                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('technicien_dashboard') }}" data-turbo="false">
+                    {{ icon('layout-dashboard', 18) }}
+                    Tableau de bord
+                </a>
             {% endif %}
-            <a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a>
-        </nav>
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('map_index') }}" data-turbo="false">
+                {{ icon('map', 18) }}
+                Carte des sites
+            </a>
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('machine_list') }}" data-turbo="false">
+                {{ icon('boxes', 18) }}
+                Parc machines
+            </a>
+        </div>
     </header>
 
     {% for zone, machines in byZone %}
@@ -102,7 +61,7 @@
                         <div class="rtn-page-heading" style="margin:0;">
                             <div>
                                 <h3>{{ machine.name }}</h3>
-                                <small style="color:#88c0d0;font-family:monospace;">{{ machine.serialNumber }}</small>
+                                <small style="color:var(--rtn-accent);font-family:monospace;">{{ machine.serialNumber }}</small>
                             </div>
                             {% include 'components/status_badge.html.twig' with {status: machine.status} only %}
                         </div>
@@ -118,9 +77,9 @@
                             <div>
                                 <span>Pannes ouvertes :</span>
                                 {% if openFaults|length > 0 %}
-                                    <strong style="color:#bf616a;">{{ openFaults|length }}</strong>
+                                    <strong style="color:var(--rtn-status-echue-text);">{{ openFaults|length }}</strong>
                                 {% else %}
-                                    <span style="color:#a3be8c;">Aucune</span>
+                                    <span style="color:var(--rtn-status-ok);">Aucune</span>
                                 {% endif %}
                             </div>
                             <div>
@@ -128,20 +87,20 @@
                                 {% if nextSchedule %}
                                     <span>
                                         {{ nextSchedule.task.action }}
-                                        <small style="color:#d8dee9;">({{ nextSchedule.nextDueDate|date('d/m/Y') }})</small>
+                                        <small style="color:var(--rtn-text-muted);">({{ nextSchedule.nextDueDate|date('d/m/Y') }})</small>
                                         {% include 'components/status_badge.html.twig' with {status: nextSchedule.state} only %}
                                     </span>
                                 {% else %}
-                                    <span style="color:#d8dee9;">Aucun planning</span>
+                                    <span style="color:var(--rtn-text-muted);">Aucun planning</span>
                                 {% endif %}
                             </div>
                         </div>
 
                         <div class="rtn-card-actions">
                             {% if is_granted('ROLE_RESPONSABLE') %}
-                                <a class="rtn-button rtn-touch-link" href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Fiche machine</a>
+                                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Fiche machine</a>
                             {% endif %}
-                            <a class="rtn-button rtn-button-secondary rtn-touch-link" href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Déclarer panne</a>
+                            <a class="rtn-btn rtn-btn-primary rtn-btn-sm" href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Déclarer panne</a>
                         </div>
                     </article>
                 {% endfor %}
@@ -149,7 +108,10 @@
         </section>
     {% else %}
         <section class="rtn-card">
-            <p>Aucune machine enregistrée pour ce site.</p>
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('boxes', 40) }}</span>
+                <p>Aucune machine enregistrée pour ce site.</p>
+            </div>
         </section>
     {% endfor %}
 </main>
