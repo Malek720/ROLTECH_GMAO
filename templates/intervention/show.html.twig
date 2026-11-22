@@ -1,18 +1,36 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Intervention{% endblock %}
+{% block title %}Intervention #{{ intervention.id }} — RolTech GMAO{% endblock %}
 
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page rtn-technician-page">
-    <nav class="rtn-nav">
-        <a href="{{ path('interventions_mine') }}" data-turbo="false">Mes interventions</a>
-        <a href="{{ path('technicien_dashboard') }}" data-turbo="false">Tableau de bord</a>
-    </nav>
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Intervention #{{ intervention.id }}</p>
+            <h1 class="rtn-page-title">
+                {{ icon('wrench', 28) }}
+                {{ machine }}
+            </h1>
+            <p class="rtn-page-desc">{{ intervention.type|capitalize }} — {{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</p>
+        </div>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('interventions_mine') }}" data-turbo="false">
+                {{ icon('wrench', 18) }}
+                Mes interventions
+            </a>
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('technicien_dashboard') }}" data-turbo="false">
+                {{ icon('layout-dashboard', 18) }}
+                Tableau de bord
+            </a>
+        </div>
+    </header>
+
     <section class="rtn-card">
         <div class="rtn-page-heading">
             <div>
-                <p class="rtn-eyebrow">Intervention #{{ intervention.id }}</p>
-                <h1>{{ machine }}</h1>
+                <p class="rtn-eyebrow">Informations machine & intervention</p>
+                <h2>{{ machine.name }}</h2>
             </div>
             {% include 'components/status_badge.html.twig' with {status: intervention.status} only %}
         </div>
@@ -41,67 +59,121 @@
     {% set canAct = is_granted('ROLE_TECHNICIEN') and intervention.technician == app.user %}
     {% if canAct and intervention.status == 'planifiee' %}
         <section class="rtn-card">
-            <h2>Démarrer l’intervention</h2>
-            <p>Cochez chaque règle avant de commencer.</p>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('shield-check', 20) }}
+                    Démarrer l’intervention
+                </h2>
+            </div>
+            <p class="rtn-field-hint" style="margin-bottom:14px;">Cochez chaque règle avant de commencer pour valider la consignation de sécurité.</p>
             <form method="post" action="{{ path('intervention_start', {id: intervention.id}) }}" class="rtn-form">
                 <input type="hidden" name="_token" value="{{ csrf_token('intervention_start_' ~ intervention.id) }}">
                 {% for key, label in lockoutItems %}
-                    <label class="rtn-check-row"><input type="checkbox" name="lockout[]" value="{{ key }}"> <span>{{ label }}</span></label>
+                    <label class="rtn-check-row">
+                        <input type="checkbox" name="lockout[]" value="{{ key }}">
+                        <span>{{ label }}</span>
+                    </label>
                 {% endfor %}
-                <button class="rtn-button rtn-button-large" type="submit">Démarrer</button>
+                <div style="margin-top:16px;">
+                    <button class="rtn-btn rtn-btn-primary rtn-btn-cta rtn-button rtn-button-large" type="submit" style="min-height:48px;">
+                        {{ icon('wrench', 20) }}
+                        Démarrer l’intervention
+                    </button>
+                </div>
             </form>
         </section>
     {% endif %}
 
     {% if canAct and procedureSteps is not empty and intervention.status == 'en cours' %}
         <section class="rtn-card">
-            <h2>Procédure</h2>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('clipboard-list', 20) }}
+                    Procédure de maintenance
+                </h2>
+            </div>
             <form method="post" action="{{ path('intervention_checklist', {id: intervention.id}) }}" class="rtn-form">
                 <input type="hidden" name="_token" value="{{ csrf_token('intervention_checklist_' ~ intervention.id) }}">
                 {% for step in procedureSteps %}
-                    <label class="rtn-check-row"><input type="checkbox" name="steps[]" value="{{ loop.index0 }}" {% if intervention.checklistProgress[loop.index0] is defined and intervention.checklistProgress[loop.index0] %}checked{% endif %}> <span>{{ step }}</span></label>
+                    <label class="rtn-check-row">
+                        <input type="checkbox" name="steps[]" value="{{ loop.index0 }}" {% if intervention.checklistProgress[loop.index0] is defined and intervention.checklistProgress[loop.index0] %}checked{% endif %}>
+                        <span>{{ step }}</span>
+                    </label>
                 {% endfor %}
-                <button class="rtn-button rtn-button-large" type="submit">Enregistrer la progression</button>
+                <div style="margin-top:16px;">
+                    <button class="rtn-btn rtn-btn-primary rtn-button rtn-button-large" type="submit" style="min-height:48px;">
+                        {{ icon('clipboard-list', 20) }}
+                        Enregistrer la progression
+                    </button>
+                </div>
             </form>
         </section>
     {% endif %}
 
     {% if canAct and intervention.status == 'en cours' %}
         <section class="rtn-card">
-            <h2>Terminer l’intervention</h2>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('shield-check', 20) }}
+                    Terminer l’intervention
+                </h2>
+            </div>
             <form method="post" action="{{ path('intervention_complete', {id: intervention.id}) }}" class="rtn-form">
                 <input type="hidden" name="_token" value="{{ csrf_token('intervention_complete_' ~ intervention.id) }}">
-                <label class="rtn-form-field">Commentaire de fin <textarea name="comment" required minlength="2"></textarea></label>
+                <label class="rtn-field">
+                    <span class="rtn-field-label">Commentaire de fin</span>
+                    <textarea class="rtn-input" name="comment" required minlength="2" rows="3" placeholder="Rapport d'intervention et actions réalisées"></textarea>
+                </label>
                 {% if availableParts is not empty %}
-                    <fieldset class="rtn-form-field">
-                        <legend>Pièces remplacées</legend>
+                    <fieldset class="rtn-field" style="margin-top:14px;border:1px solid var(--rtn-border);padding:14px;border-radius:var(--rtn-radius-md);">
+                        <legend class="rtn-field-label">Pièces remplacées</legend>
                         {% for part in availableParts %}
                             <label class="rtn-part-row">
                                 <span>{{ part.description }}{% if part.dataStatus == 'demo' %} — Démo{% endif %}</span>
-                                <input type="number" name="parts[{{ part.id }}]" min="1" inputmode="numeric" placeholder="Quantité">
+                                <input class="rtn-input" type="number" name="parts[{{ part.id }}]" min="1" inputmode="numeric" placeholder="Quantité">
                             </label>
                         {% endfor %}
                     </fieldset>
                 {% endif %}
-                <button class="rtn-button rtn-button-large" type="submit">Terminer</button>
+                <div style="margin-top:16px;">
+                    <button class="rtn-btn rtn-btn-primary rtn-btn-cta rtn-button rtn-button-large" type="submit" style="min-height:48px;">
+                        {{ icon('shield-check', 20) }}
+                        Terminer l’intervention
+                    </button>
+                </div>
             </form>
         </section>
     {% endif %}
 
     {% if canAct and intervention.status in ['planifiee', 'en cours'] %}
         <section class="rtn-card">
-            <h2>Je ne peux pas intervenir</h2>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('alert-triangle', 20) }}
+                    Je ne peux pas intervenir
+                </h2>
+            </div>
             <form method="post" action="{{ path('intervention_cannot', {id: intervention.id}) }}" class="rtn-form">
                 <input type="hidden" name="_token" value="{{ csrf_token('intervention_cannot_' ~ intervention.id) }}">
-                <label class="rtn-form-field">Raison <textarea name="reason" required minlength="2"></textarea></label>
-                <button class="rtn-button rtn-button-secondary rtn-button-large" type="submit">Renvoyer au dispatch</button>
+                <label class="rtn-field">
+                    <span class="rtn-field-label">Raison de l'impossibilité</span>
+                    <textarea class="rtn-input" name="reason" required minlength="2" rows="3" placeholder="Précisez le motif d'indisponibilité ou blocage"></textarea>
+                </label>
+                <div style="margin-top:14px;">
+                    <button class="rtn-btn rtn-btn-danger rtn-button rtn-button-secondary rtn-button-large" type="submit" style="min-height:48px;">Renvoyer au dispatch</button>
+                </div>
             </form>
         </section>
     {% endif %}
 
     <section class="rtn-card">
-        <h2>Historique</h2>
-        <ul class="rtn-history">
+        <div class="rtn-card-header">
+            <h2 class="rtn-card-title">
+                {{ icon('clipboard-list', 20) }}
+                Historique de l'intervention
+            </h2>
+        </div>
+        <ul class="rtn-history" style="padding-left:20px;color:var(--rtn-text-muted);">
             <li>Créée le {{ intervention.startDate|date('d/m/Y H:i') }}</li>
             {% if intervention.startedAt %}<li>Démarrée le {{ intervention.startedAt|date('d/m/Y H:i') }}</li>{% endif %}
             {% if intervention.endDate %}<li>Terminée le {{ intervention.endDate|date('d/m/Y H:i') }}</li>{% endif %}
