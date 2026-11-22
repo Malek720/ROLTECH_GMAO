@@ -419,3 +419,246 @@ No new template variables needed. The dashboards use only variables already pass
 - Templates linted: `php bin/console lint:twig templates` (All 39 Twig files valid).
 - PHPUnit test suite: **132 tests, 593 assertions, 0 failures, 0 errors** (65 functional, 67 unit).
 - Unchanged functional hooks: `#rtn-bell`, `.rtn-toasts[aria-live="polite"]`, `#rtn-map`, `[data-rtn-viewer]`, `#rtn-kpi-data`, `#rtn-kpi-charts-root`, `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url`, `#rtn-fault-viewer-collapsible`, `ol.rtn-timeline`, `input[name="fault[_token]"]`, form field names `fault[*]`, print stylesheet hiding viewer and printing QR.
+
+
+---
+
+## Phase 9b — Step 9b.5: Verification, Design System Audit & Manual Test Script
+
+### 1. Verification Summary
+
+- **Database Safety**: Database connection verified against `roltech_gmao_copy_test` via `$env:DATABASE_URL="mysql://root:@127.0.0.1:3306/roltech_gmao_copy?serverVersion=10.4.32-MariaDB"` and `doctrine:query:sql "SELECT DATABASE()" --env=test`. Main database `roltech_gmao` untouched; no fixtures run.
+- **Twig Linter**: `php bin/console lint:twig templates` (All 39 Twig files valid).
+- **PHPUnit Test Suite**: Ran twice against `roltech_gmao_copy_test`:
+  - **Run 1**: **132 tests, 593 assertions, 0 failures, 0 errors, 1 deprecation**.
+  - **Run 2**: **132 tests, 593 assertions, 0 failures, 0 errors, 1 deprecation**.
+
+---
+
+### 2. Design Foundation & Tokens Reference
+
+All design tokens are defined in `assets/styles/rtn-ui.css` using the Nord color palette and semantic tokens:
+
+```css
+:root {
+  /* Nord Palette */
+  --rtn-nord0: #2e3440;  /* Dark background / Polar Night */
+  --rtn-nord1: #3b4252;  /* Elevated element / Polar Night */
+  --rtn-nord2: #434c5e;  /* Input highlight / Polar Night */
+  --rtn-nord3: #4c566a;  /* Subtle element / Polar Night */
+  --rtn-nord4: #d8dee9;  /* Muted text / Snow Storm */
+  --rtn-nord5: #e5e9f0;  /* Standard text / Snow Storm */
+  --rtn-nord6: #eceff4;  /* High-contrast text / Snow Storm */
+  --rtn-nord7: #8fbcbb;  /* Frost teal */
+  --rtn-nord8: #88c0d0;  /* Frost cyan / Accent */
+  --rtn-nord9: #81a1c1;  /* Frost blue */
+  --rtn-nord10: #5e81ac; /* Frost dark blue */
+  --rtn-nord11: #bf616a; /* Aurora red / Danger */
+  --rtn-nord12: #d08770; /* Aurora orange / Warning / Proche */
+  --rtn-nord13: #ebcb8b; /* Aurora yellow / Alert */
+  --rtn-nord14: #a3be8c; /* Aurora green / OK */
+  --rtn-nord15: #b48ead; /* Aurora purple / Demo */
+
+  /* Semantic Theme Tokens */
+  --rtn-bg-canvas: #020817;
+  --rtn-bg-card: #252d3e;
+  --rtn-bg-surface-elevated: #2e384d;
+  --rtn-bg-input: #1b2435;
+  --rtn-border: #566580;
+  --rtn-border-subtle: #2e384d;
+  --rtn-border-focus: #88c0d0;
+  --rtn-text: #eceff4;
+  --rtn-text-muted: #d8dee9;
+  --rtn-text-subtle: #94a3b8;
+  --rtn-link: #88c0d0;
+  --rtn-link-hover: #b9e6ef;
+
+  /* Button Tokens */
+  --rtn-btn-primary-bg: #88c0d0;
+  --rtn-btn-primary-text: #020817;
+  --rtn-btn-secondary-bg: #3b465c;
+  --rtn-btn-secondary-text: #eceff4;
+  --rtn-btn-ghost-text: #eceff4;
+  --rtn-btn-danger-bg: #bf616a;
+  --rtn-btn-danger-text: #020817;
+
+  /* Focus & Elevation */
+  --rtn-focus-ring: #88c0d0;
+  --rtn-radius-sm: 6px;
+  --rtn-radius-md: 10px;
+  --rtn-radius-lg: 14px;
+  --rtn-radius-pill: 999px;
+  --rtn-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.25);
+  --rtn-shadow-md: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --rtn-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+```
+
+#### Shared Components
+- **Shell**: `.rtn-shell`, `.rtn-sidebar`, `.rtn-topbar`, `.rtn-tab-bar`, `.rtn-mobile-topbar`, `.rtn-drawer`.
+- **Cards**: `.rtn-card`, `.rtn-stat-card`, `.rtn-card--kpi`, `.rtn-item`.
+- **Buttons**: `.rtn-btn`, `.rtn-btn-primary`, `.rtn-btn-secondary`, `.rtn-btn-ghost`, `.rtn-btn-danger`, `.rtn-btn-cta`.
+- **Forms**: `.rtn-form`, `.rtn-field`, `.rtn-field-label`, `.rtn-input`, `.rtn-check-row` (min-height 48px), `.rtn-part-row`.
+- **Feedback**: `.rtn-toasts[aria-live="polite"]`, `.rtn-toast`, `.rtn-badge`, `templates/components/status_badge.html.twig`.
+- **Responsive Tables**: `.rtn-table`, `.rtn-machine-table`, `.rtn-plan-table` (shifts to stacked card view at $\le 640$px).
+
+---
+
+### 3. Icon Library Attribution & Licenses
+
+- **Lucide Icons**: ISC License, Copyright (c) Lucide Contributors ([lucide.dev](https://lucide.dev/)).
+- **Feather Icons**: MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- **Implementation**: Pure inline SVG macro in `templates/_partials/icons.html.twig`:
+  - `{{ icon(name, size = 20, class = '') }}`
+  - Attributes: `aria-hidden="true"`, `focusable="false"`, `stroke="currentColor"`, `fill="none"`, `stroke-width="2"`, `stroke-linecap="round"`, `stroke-linejoin="round"`.
+  - Zero external CDN dependencies (rule 22 compliant).
+
+---
+
+### 4. Motion Guidelines
+
+- **Duration & Timing**: 150ms – 250ms, `ease-out`.
+- **Properties**: Strictly `transform` and `opacity` to maintain 60fps compositor-driven rendering.
+- **Reduced Motion Support**:
+  - CSS override: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .rtn-card:hover, .rtn-dashboard-card:hover, .rtn-stat-card--link:hover { transform: none !important; } }`.
+  - JavaScript guard in `assets/ui.js`: `prefersReducedMotion()` checks `window.matchMedia('(prefers-reduced-motion: reduce)').matches` before triggering staggered stat-card animations.
+
+---
+
+### 5. Automated Contrast Check (`tools/check-contrast.mjs`)
+
+Verification script output:
+
+| Pair Name | FG Token (Hex) | BG Token (Hex) | Ratio | Required | Result |
+|---|---|---|---|---|---|
+| Body text on canvas | `#eceff4` (`--rtn-text`) | `#020817` (`--rtn-bg-canvas`) | **17.36:1** | $\ge 4.5:1$ | **PASS** |
+| Body text on card | `#eceff4` (`--rtn-text`) | `#252d3e` (`--rtn-bg-card`) | **11.96:1** | $\ge 4.5:1$ | **PASS** |
+| Muted text on card | `#d8dee9` (`--rtn-text-muted`) | `#252d3e` (`--rtn-bg-card`) | **10.20:1** | $\ge 4.5:1$ | **PASS** |
+| Link on card | `#88c0d0` (`--rtn-link`) | `#252d3e` (`--rtn-bg-card`) | **6.89:1** | $\ge 4.5:1$ | **PASS** |
+| Button primary label | `#020817` (`--rtn-btn-primary-text`) | `#88c0d0` (`--rtn-btn-primary-bg`) | **10.00:1** | $\ge 4.5:1$ | **PASS** |
+| Button secondary label | `#eceff4` (`--rtn-btn-secondary-text`) | `#3b465c` (`--rtn-btn-secondary-bg`) | **8.22:1** | $\ge 4.5:1$ | **PASS** |
+| Button ghost label on card | `#eceff4` (`--rtn-btn-ghost-text`) | `#252d3e` (`--rtn-bg-card`) | **11.96:1** | $\ge 4.5:1$ | **PASS** |
+| Button danger label | `#020817` (`--rtn-btn-danger-text`) | `#bf616a` (`--rtn-btn-danger-bg`) | **4.89:1** | $\ge 4.5:1$ | **PASS** |
+| Badge OK text | `#a3be8c` (`--rtn-badge-ok-text`) | `#1e3328` (`--rtn-badge-ok-bg`) | **6.61:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Proche text | `#d08770` (`--rtn-badge-proche-text`) | `#382822` (`--rtn-badge-proche-bg`) | **4.94:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Echue text | `#ffb4ab` (`--rtn-badge-echue-text`) | `#3c1e24` (`--rtn-badge-echue-bg`) | **8.81:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Warning text | `#ebcb8b` (`--rtn-badge-warning-text`) | `#3d331f` (`--rtn-badge-warning-bg`) | **7.95:1** | $\ge 4.5:1$ | **PASS** |
+| Status OK text on card | `#a3be8c` (`--rtn-status-ok-text`) | `#252d3e` (`--rtn-bg-card`) | **6.76:1** | $\ge 4.5:1$ | **PASS** |
+| Status Proche text on card | `#d08770` (`--rtn-status-proche-text`) | `#252d3e` (`--rtn-bg-card`) | **4.84:1** | $\ge 4.5:1$ | **PASS** |
+| Status Echue text on card | `#ffb4ab` (`--rtn-status-echue-text`) | `#252d3e` (`--rtn-bg-card`) | **8.12:1** | $\ge 4.5:1$ | **PASS** |
+| Status Warning text on card | `#ebcb8b` (`--rtn-status-warning-text`) | `#252d3e` (`--rtn-bg-card`) | **8.83:1** | $\ge 4.5:1$ | **PASS** |
+| Focus ring on card background | `#88c0d0` (`--rtn-focus-ring`) | `#252d3e` (`--rtn-bg-card`) | **6.89:1** | $\ge 3.0:1$ | **PASS** |
+| Focus ring on canvas | `#88c0d0` (`--rtn-focus-ring`) | `#020817` (`--rtn-bg-canvas`) | **10.00:1** | $\ge 3.0:1$ | **PASS** |
+| Card border on canvas | `#566580` (`--rtn-border`) | `#020817` (`--rtn-bg-canvas`) | **3.40:1** | $\ge 3.0:1$ | **PASS** |
+
+---
+
+### 6. Navigation Menu per Role
+
+| Role | Desktop Sidebar ($\ge 1100$px) & Tablet Rail (640–1100px) | Mobile Phone ($< 640$px) |
+|---|---|---|
+| **Technicien** | • Tableau de bord (`technicien_dashboard`)<br>• Mes interventions (`interventions_mine`)<br>• Déclarer une panne (`fault_new`)<br>• Carte (`map_index`)<br>• Notifications (`notifications`)<br>• Mes pannes (`faults_mine`)<br>• Parc machines (`machine_list`)<br>• Déconnexion (`app_logout`) | **Bottom tab bar (5 primary targets)**:<br>1. Tableau de bord<br>2. Mes interventions<br>3. Déclarer une panne<br>4. Carte<br>5. Notifications (avec badge non lu)<br>+ **Bouton "Plus"** (ouvre le slide-over drawer pour *Mes pannes*, *Parc machines*, *Déconnexion*). |
+| **Responsable** | • Tableau de bord (`responsable_dashboard`)<br>• Carte (`map_index`)<br>• Parc machines (`machine_list`)<br>• Dispatch (`responsable_dispatch`)<br>• Plan maintenance (`maintenance_plan`)<br>• Indicateurs KPI (`kpi_index`)<br>• Déclarer panne (`fault_new`)<br>• Notifications (`notifications`)<br>• Déconnexion (`app_logout`) | **Top bar slim** avec marque + cloche notifications + bouton menu hamburger (`#rtn-drawer-btn`) ouvrant le slide-over drawer complet. |
+| **Administrateur** | Items responsable + lien discret "Administration" (`/admin`) dans le pied de barre latérale et le drawer. | Identique responsable + lien "Administration" dans le drawer. |
+
+---
+
+### 7. Accessibility Audit & Conformance
+
+1. **Form Labels**: Every `<input>`, `<select>`, and `<textarea>` has an explicit `<label for="...">`, a wrapping `<label class="rtn-field">`, or an explicit `aria-label`.
+2. **Icon-only Controls**: All icon-only elements have accessible text via `aria-label` or `title` (`#rtn-bell`, `#rtn-drawer-btn`, `#rtn-drawer-close`, `.rtn-sidebar-logout`, `.rtn-sidebar-admin-link`).
+3. **No Meaning by Color Alone**: Every status indicator combines text, distinct icon, and color via `templates/components/status_badge.html.twig` or dedicated badge classes (Rule 24).
+4. **Skip Link**: Accessible `<a href="#rtn-main-content" class="rtn-skip-link">Aller au contenu</a>` targets `<div id="rtn-main-content" tabindex="-1">`.
+5. **Headings**: Strictly one `h1` per page (`.rtn-page-title`), followed hierarchically by `h2` and `h3` with zero skipped levels.
+6. **Focus Ring**: `:focus-visible` sets a 2px outline with `--rtn-focus-ring` (`#88c0d0`, contrast ratio 6.89:1 on cards and 10.00:1 on canvas).
+7. **Mobile Drawer Focus**: Focus moves to `#rtn-drawer-close` upon opening, background elements receive `inert`, Tab key is trapped inside, and closing returns focus directly to `#rtn-drawer-btn`.
+8. **Toast Region**: Flash messages rendered in `<div class="rtn-toasts" aria-live="polite">` in `base.html.twig` (Rule 21).
+9. **Table Headers**: All table columns declare `<th scope="col">`.
+10. **Touch Targets**: All interactive controls on technician mobile pages meet or exceed the 44px standard (buttons and inputs $\ge 44$px, checklist rows $\ge 48$px, bottom tabs $\ge 56$px).
+11. **Responsive Viewports**: No horizontal blowout at 375px (`.rtn-plan-table` shifts to stacked card view, data tables wrapped in `.rtn-table-scroll`).
+12. **Print Stylesheet**: Machine fiche prints identity and QR code cleanly on white paper; all navigation (`.rtn-sidebar`, `.rtn-topbar`, `.rtn-tab-bar`, `.rtn-mobile-topbar`, `.rtn-drawer`, `.rtn-bell`, `.rtn-toasts`) and the 3D viewer are hidden (`display: none !important;`).
+
+---
+
+### 8. Dead-Code Candidates (Read-Only Inventory)
+
+- **Template**: `templates/dashboard/placeholder.html.twig` (unreferenced by any controller or template).
+- **CSS Classes in Legacy Inline Styles**: `.rtn-dashboard-item`, `.rtn-status-grid`, `.rtn-action-card` (unreferenced in any template, removed along with the duplicate style block in `base.html.twig`).
+
+---
+
+### 9. What Could Not Be Tested Without a Browser
+
+- Real touch responsiveness and tap gesture behavior on physical iOS and Android mobile screens at 375px.
+- WebGL 3D viewer hardware acceleration and frame rate stability alongside CSS transitions.
+- Pixel-perfect rendering of the browser native print preview dialog (margins, headers/footers) across Chromium, Gecko, and WebKit engines.
+- Screen reader verbal announcements (NVDA, JAWS, VoiceOver) during dynamic DOM live-region updates and `inert` tree isolation.
+
+---
+
+### 10. Requirements With No Test
+
+- **Responsive Viewport Media Queries**: Breakpoint shifts at 640px and 1100px are CSS rules (`assets/styles/rtn-ui.css`), not tested by backend PHPUnit assertions.
+- **Client-Side Focus Trapping & Drawer Animation**: Vanilla JavaScript in `assets/ui.js` operates entirely in the browser DOM and is not simulated by Symfony WebTestCase (which tests server-rendered HTML).
+
+---
+
+### 11. Manual UI Test Script
+
+#### Setup & Credentials
+- **Technicien**: `karim@roltech.tn` / `password`
+- **Responsable**: `responsable@roltech.tn` / `password`
+- **Admin**: `admin@roltech.tn` / `password`
+
+#### Test Scenarios
+
+1. **Desktop Viewport (1280px)**:
+   - Log in as Karim (`karim@roltech.tn`).
+   - Confirm full left sidebar is visible with brand mark, labels, notification badge, and user email.
+   - Navigate to *Tableau de bord*, *Mes interventions*, *Déclarer une panne*, *Carte*, *Notifications*.
+   - Verify active menu item displays the cyan indicator bar and `aria-current="page"`.
+   - Log out, log in as Responsable (`responsable@roltech.tn`).
+   - Confirm Responsable items (*Dispatch*, *Plan maintenance*, *Indicateurs KPI*) appear in the sidebar.
+
+2. **Tablet Viewport (768px)**:
+   - Resize browser to 768px width.
+   - Confirm sidebar collapses smoothly to an icon rail (68px width) with tooltips (`title` and `aria-label`).
+   - Confirm main content expands to fill the remaining width without horizontal scrollbars.
+
+3. **Mobile Phone Viewport (375px)**:
+   - Open DevTools device toolbar set to iPhone SE (375px width).
+   - Log in as Karim:
+     - Verify bottom tab bar displays 5 touch targets: *Tableau*, *Interventions*, *Déclarer*, *Carte*, *Notifs*.
+     - Tap "Plus": slide-over drawer opens from left; backdrop dims background.
+     - Confirm focus is placed inside the drawer. Press `Escape` or tap "Fermer": drawer closes, focus returns to "Plus".
+     - Inspect touch targets: verify every button, checklist item, and bottom tab is $\ge 44$px.
+     - Navigate to *Plan de maintenance* (`/maintenance/plan`): verify plan rows stack vertically as readable cards with `data-label` titles and no horizontal page scroll.
+   - Log in as Responsable:
+     - Verify slim topbar with hamburger menu button.
+     - Tap hamburger: full navigation drawer opens smoothly.
+
+4. **Keyboard-Only Navigation**:
+   - Press `Tab` upon page load: verify the "Aller au contenu" skip link becomes visible at top-left.
+   - Press `Enter`: focus jumps directly to `#rtn-main-content`.
+   - Navigate the fault declaration form (`/panne/declarer`) using only `Tab`, `Arrow keys`, and `Enter`:
+     - Verify clear cyan focus ring (`:focus-visible`) on every field, dropdown, and button.
+     - Submit an empty form: verify inline French validation messages appear and receive focus.
+
+5. **Reduced Motion Emulation**:
+   - In Chrome DevTools, open the **Rendering** tab (`Ctrl+Shift+P` -> `Show Rendering`).
+   - Set *Emulate CSS media feature prefers-reduced-motion* to `prefers-reduced-motion: reduce`.
+   - Navigate between pages: verify stat cards and drawer open instantly without transitions or staggered sliding.
+
+6. **Print Preview**:
+   - Open any machine fiche (e.g. `/machine/1`).
+   - Press `Ctrl+P` (Print):
+     - Confirm preview shows white background with black text.
+     - Confirm QR code and machine serial/specifications are prominently displayed.
+     - Confirm sidebar, topbar, tab bar, action buttons, edit form, and 3D viewer are hidden.
+
+7. **Lighthouse Accessibility Audit**:
+   - Run Lighthouse Accessibility audit in Chrome DevTools on:
+     - `/` (Dashboard)
+     - `/machine/1` (Fiche machine)
+     - `/panne/declarer` (Déclaration panne)
+   - Target score: **$\ge 98/100$** (zero color contrast failures, complete ARIA landmark labeling, valid heading structures).

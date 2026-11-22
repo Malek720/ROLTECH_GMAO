@@ -177,7 +177,7 @@
                     {% else %}
                         <form method="post" action="{{ path('responsable_fault_reopen', {id: fault.id}) }}" style="display:flex;gap:6px;">
                             <input type="hidden" name="_token" value="{{ csrf_token('responsable_fault_reopen_' ~ fault.id) }}">
-                            <input class="rtn-input" name="reason" required placeholder="Raison de réouverture" style="padding:4px 8px;font-size:.85rem;">
+                            <input class="rtn-input" name="reason" required placeholder="Raison de réouverture" aria-label="Raison de réouverture" style="padding:4px 8px;font-size:.85rem;">
                             <button class="rtn-btn rtn-btn-secondary rtn-btn-sm" type="submit">Réouvrir</button>
                         </form>
                     {% endif %}
@@ -209,8 +209,8 @@
                     {% if schedule.state == 'echue' %}
                         <form method="post" action="{{ path('responsable_schedule_postpone', {id: schedule.id}) }}" style="display:flex;gap:6px;">
                             <input type="hidden" name="_token" value="{{ csrf_token('responsable_schedule_postpone_' ~ schedule.id) }}">
-                            <input class="rtn-input" type="date" name="new_date" required style="padding:4px 8px;font-size:.85rem;">
-                            <input class="rtn-input" name="reason" required placeholder="Raison" style="padding:4px 8px;font-size:.85rem;">
+                            <input class="rtn-input" type="date" name="new_date" required aria-label="Nouvelle date de report" style="padding:4px 8px;font-size:.85rem;">
+                            <input class="rtn-input" name="reason" required placeholder="Raison" aria-label="Raison du report" style="padding:4px 8px;font-size:.85rem;">
                             <button class="rtn-btn rtn-btn-secondary rtn-btn-sm" type="submit">Reporter</button>
                         </form>
                     {% endif %}

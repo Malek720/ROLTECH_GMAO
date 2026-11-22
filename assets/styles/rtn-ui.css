@@ -1817,6 +1817,71 @@ a:hover {
 /* body when drawer open: prevent scroll */
 body.rtn-drawer-is-open { overflow: hidden; }
 
+/* ── Legacy utilities migrated to design tokens ───────────────────────── */
+.rtn-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.rtn-detail-list {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.5fr) minmax(0, 1.5fr);
+  gap: 10px 18px;
+}
+
+.rtn-detail-list dt {
+  font-weight: 700;
+  color: var(--rtn-nord8);
+}
+
+.rtn-detail-list dd {
+  margin: 0;
+}
+
+.rtn-mobile-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rtn-mobile-list-item {
+  display: grid;
+  gap: 7px;
+  padding: 16px;
+  border: 1px solid var(--rtn-border);
+  border-radius: var(--rtn-radius-md);
+  background: var(--rtn-bg-input);
+  color: var(--rtn-text);
+  text-decoration: none;
+}
+
+.rtn-history {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.rtn-filter-active {
+  border-bottom: 3px solid var(--rtn-nord8);
+  font-weight: 700;
+}
+
+/* ── Global print stylesheet: hide all shell navigation & toasts ────────── */
+@media print {
+  .rtn-sidebar,
+  .rtn-topbar,
+  .rtn-tab-bar,
+  .rtn-mobile-topbar,
+  .rtn-drawer,
+  .rtn-skip-link,
+  .rtn-toasts,
+  .rtn-bell {
+    display: none !important;
+  }
+}
+
 /* ── Reduced motion overrides for shell ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .rtn-sidebar-indicator,
