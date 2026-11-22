@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * WCAG AA Contrast Verification Script for RolTech GMAO
- * Reads CSS variables from assets/styles/rtn-ui.css and verifies color contrast.
+ * Parses CSS declarations from assets/styles/rtn-ui.css and assets/styles/login.css,
+ * resolves custom properties, and verifies color contrast against WCAG AA criteria.
  */
 
 import { readFileSync } from 'node:fs';
@@ -10,29 +11,6 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Pairs to check: [name, fgVar, bgVar, minRatio, type ('text'|'ui')]
-const PAIRS = [
-  { name: 'Body text on canvas', fg: '--rtn-text', bg: '--rtn-bg-canvas', min: 4.5, type: 'text' },
-  { name: 'Body text on card', fg: '--rtn-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Muted text on card', fg: '--rtn-text-muted', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Link on card', fg: '--rtn-link', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Button primary label', fg: '--rtn-btn-primary-text', bg: '--rtn-btn-primary-bg', min: 4.5, type: 'text' },
-  { name: 'Button secondary label', fg: '--rtn-btn-secondary-text', bg: '--rtn-btn-secondary-bg', min: 4.5, type: 'text' },
-  { name: 'Button ghost label on card', fg: '--rtn-btn-ghost-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Button danger label', fg: '--rtn-btn-danger-text', bg: '--rtn-btn-danger-bg', min: 4.5, type: 'text' },
-  { name: 'Badge OK text', fg: '--rtn-badge-ok-text', bg: '--rtn-badge-ok-bg', min: 4.5, type: 'text' },
-  { name: 'Badge Proche text', fg: '--rtn-badge-proche-text', bg: '--rtn-badge-proche-bg', min: 4.5, type: 'text' },
-  { name: 'Badge Echue text', fg: '--rtn-badge-echue-text', bg: '--rtn-badge-echue-bg', min: 4.5, type: 'text' },
-  { name: 'Badge Warning text', fg: '--rtn-badge-warning-text', bg: '--rtn-badge-warning-bg', min: 4.5, type: 'text' },
-  { name: 'Status OK text on card', fg: '--rtn-status-ok-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Status Proche text on card', fg: '--rtn-status-proche-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Status Echue text on card', fg: '--rtn-status-echue-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Status Warning text on card', fg: '--rtn-status-warning-text', bg: '--rtn-bg-card', min: 4.5, type: 'text' },
-  { name: 'Focus ring on card background', fg: '--rtn-focus-ring', bg: '--rtn-bg-card', min: 3.0, type: 'ui' },
-  { name: 'Focus ring on canvas', fg: '--rtn-focus-ring', bg: '--rtn-bg-canvas', min: 3.0, type: 'ui' },
-  { name: 'Card border on canvas', fg: '--rtn-border', bg: '--rtn-bg-canvas', min: 3.0, type: 'ui' }
-];
 
 function parseCssVariables(cssPath) {
   const content = readFileSync(cssPath, 'utf-8');
@@ -45,7 +23,7 @@ function parseCssVariables(cssPath) {
     vars.set(key, val);
   }
 
-  // Resolve var(--xxx) references
+  // Resolve var(--xxx) references up to 5 passes
   for (let i = 0; i < 5; i++) {
     for (const [key, val] of vars.entries()) {
       const varRef = val.match(/^var\((--rtn-[\w-]+)\)$/);
@@ -58,13 +36,60 @@ function parseCssVariables(cssPath) {
   return vars;
 }
 
+function parseRules(cssPath) {
+  let content = readFileSync(cssPath, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+  // Strip @media and @keyframes blocks so base rules are evaluated
+  content = content.replace(/@media[^{]*\{([\s\S]*?\}\s*)\}/g, '');
+  content = content.replace(/@keyframes[^{]*\{([\s\S]*?\}\s*)\}/g, '');
+
+  const rules = new Map();
+  const ruleRegex = /([^{]+)\{([^}]+)\}/g;
+  let match;
+  while ((match = ruleRegex.exec(content)) !== null) {
+    const rawSelectors = match[1].trim();
+    const decls = match[2].trim();
+    const selectors = rawSelectors.split(',').map(s => s.trim());
+    for (const selector of selectors) {
+      const declMap = rules.get(selector) || new Map();
+      for (const line of decls.split(';')) {
+        const parts = line.split(':');
+        if (parts.length >= 2) {
+          const prop = parts[0].trim();
+          const val = parts.slice(1).join(':').replace('!important', '').trim();
+          declMap.set(prop, val);
+        }
+      }
+      rules.set(selector, declMap);
+    }
+  }
+  return rules;
+}
+
+function resolveValue(val, tokens) {
+  if (!val) return null;
+  val = val.trim();
+  if (val.startsWith('#')) return val;
+  const match = val.match(/^var\((--rtn-[\w-]+)(?:,\s*([^)]+))?\)$/);
+  if (match) {
+    const varName = match[1];
+    const fallback = match[2] ? match[2].trim() : null;
+    if (tokens.has(varName)) {
+      return resolveValue(tokens.get(varName), tokens);
+    }
+    if (fallback) {
+      return resolveValue(fallback, tokens);
+    }
+    throw new Error(`Referenced undefined variable: ${varName}`);
+  }
+  return val;
+}
+
 function hexToRgb(hex) {
   hex = hex.replace('#', '').trim();
   if (hex.length === 3) {
     hex = hex.split('').map(c => c + c).join('');
   }
   if (hex.length === 8) {
-    // Drop alpha channel for basic solid contrast against dark theme
     hex = hex.substring(0, 6);
   }
   const num = parseInt(hex, 16);
@@ -91,35 +116,183 @@ function getContrast(rgb1, rgb2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-const cssPath = resolve(__dirname, '../assets/styles/rtn-ui.css');
-const tokens = parseCssVariables(cssPath);
+const rtnUiPath = resolve(__dirname, '../assets/styles/rtn-ui.css');
+const loginCssPath = resolve(__dirname, '../assets/styles/login.css');
+
+const tokens = parseCssVariables(rtnUiPath);
+const rtnRules = parseRules(rtnUiPath);
+const loginRules = parseRules(loginCssPath);
+
+function getRuleProp(rules, selectorSubstring, prop) {
+  for (const [sel, decls] of rules.entries()) {
+    if (sel.includes(selectorSubstring) && decls.has(prop)) {
+      return decls.get(prop);
+    }
+  }
+  return null;
+}
+
+const PAIRS = [
+  // Base theme tokens
+  { name: 'Body text on canvas', fg: resolveValue(tokens.get('--rtn-text'), tokens), bg: resolveValue(tokens.get('--rtn-bg-canvas'), tokens), min: 4.5, type: 'text' },
+  { name: 'Body text on card', fg: resolveValue(tokens.get('--rtn-text'), tokens), bg: resolveValue(tokens.get('--rtn-bg-card'), tokens), min: 4.5, type: 'text' },
+  { name: 'Muted text on card', fg: resolveValue(tokens.get('--rtn-text-muted'), tokens), bg: resolveValue(tokens.get('--rtn-bg-card'), tokens), min: 4.5, type: 'text' },
+  { name: 'Link on card', fg: resolveValue(tokens.get('--rtn-link'), tokens), bg: resolveValue(tokens.get('--rtn-bg-card'), tokens), min: 4.5, type: 'text' },
+  { name: 'Button primary label', fg: resolveValue(tokens.get('--rtn-btn-primary-text'), tokens), bg: resolveValue(tokens.get('--rtn-btn-primary-bg'), tokens), min: 4.5, type: 'text' },
+  { name: 'Button secondary label', fg: resolveValue(tokens.get('--rtn-btn-secondary-text'), tokens), bg: resolveValue(tokens.get('--rtn-btn-secondary-bg'), tokens), min: 4.5, type: 'text' },
+  { name: 'Button ghost label on card', fg: resolveValue(tokens.get('--rtn-btn-ghost-text'), tokens), bg: resolveValue(tokens.get('--rtn-bg-card'), tokens), min: 4.5, type: 'text' },
+  { name: 'Button danger label', fg: resolveValue(tokens.get('--rtn-btn-danger-text'), tokens), bg: resolveValue(tokens.get('--rtn-btn-danger-bg'), tokens), min: 4.5, type: 'text' },
+
+  // Badge variants (parsed from rtn-ui.css rules)
+  {
+    name: 'Badge OK text',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-ok', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-ok', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Proche text',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-proche', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-proche', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Echue text',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-echue', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-echue', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Warning text',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-warning', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-warning', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Info text',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-info', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-info', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Confirmed (Data Status)',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-confirmed', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-confirmed', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Badge Demo (Data Status)',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-demo', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-badge-demo', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+
+  // Map popup rules
+  {
+    name: 'Map popup text on card bg',
+    fg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-content-wrapper', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-content-wrapper', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Map popup link on card bg',
+    fg: resolveValue(getRuleProp(rtnRules, '.leaflet-container a', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-content-wrapper', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Map popup close button on card bg',
+    fg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-close-button', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-content-wrapper', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Map popup action button label',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-map-popup .rtn-button', 'color'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.rtn-map-popup .rtn-button', 'background'), tokens),
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Map popup action button on popup bg',
+    fg: resolveValue(getRuleProp(rtnRules, '.rtn-map-popup .rtn-button', 'background'), tokens),
+    bg: resolveValue(getRuleProp(rtnRules, '.leaflet-popup-content-wrapper', 'background'), tokens),
+    min: 3.0, type: 'ui'
+  },
+
+  // Login page rules (parsed from login.css)
+  {
+    name: 'Login submit button label (Technicien)',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-submit-btn', 'color'), tokens),
+    bg: '#88c0d0', // Technicien role accent
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login submit button label (Responsable)',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-submit-btn', 'color'), tokens),
+    bg: '#d08770', // Responsable role accent
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login submit button label (Admin)',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-submit-btn', 'color'), tokens),
+    bg: '#b48ead', // Admin role accent
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login eyebrow on card bg',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-eyebrow', 'color'), tokens),
+    bg: '#ffffff',
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login placeholder on input bg',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-field input::placeholder', 'color'), tokens),
+    bg: '#fbfcfe',
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login footer text on sidebar bg',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-sidebar-footer', 'color'), tokens),
+    bg: '#f7f9fc',
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login role picker item on sidebar bg',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-nav-item', 'color'), tokens),
+    bg: '#f7f9fc',
+    min: 4.5, type: 'text'
+  },
+  {
+    name: 'Login role picker icon on icon bg',
+    fg: resolveValue(getRuleProp(loginRules, '.rtn-nav-icon', 'color'), tokens),
+    bg: resolveValue(getRuleProp(loginRules, '.rtn-nav-icon', 'background'), tokens) || '#e5e9f0',
+    min: 3.0, type: 'ui'
+  }
+];
 
 let hasFailure = false;
 console.log('\n=== RolTech GMAO — WCAG Contrast Check ===\n');
-console.log('| Pair Name | FG Token (Hex) | BG Token (Hex) | Ratio | Required | Result |');
+console.log('| Pair Name | FG Color | BG Color | Ratio | Required | Result |');
 console.log('|---|---|---|---|---|---|');
 
 for (const pair of PAIRS) {
-  const fgVal = tokens.get(pair.fg);
-  const bgVal = tokens.get(pair.bg);
-
-  if (!fgVal || !bgVal) {
-    console.log(`| ${pair.name} | ${pair.fg} (${fgVal}) | ${pair.bg} (${bgVal}) | N/A | ${pair.min}:1 | MISSING TOKEN |`);
+  if (!pair.fg || !pair.bg) {
+    console.log(`| ${pair.name} | ${pair.fg} | ${pair.bg} | N/A | ${pair.min}:1 | MISSING COLOR |`);
     hasFailure = true;
     continue;
   }
 
   try {
-    const fgRgb = hexToRgb(fgVal);
-    const bgRgb = hexToRgb(bgVal);
+    const fgRgb = hexToRgb(pair.fg);
+    const bgRgb = hexToRgb(pair.bg);
     const ratio = getContrast(fgRgb, bgRgb);
     const passed = ratio >= pair.min;
     if (!passed) hasFailure = true;
 
     const status = passed ? 'PASS' : 'FAIL';
-    console.log(`| ${pair.name} | \`${fgVal}\` (${pair.fg}) | \`${bgVal}\` (${pair.bg}) | **${ratio.toFixed(2)}:1** | >= ${pair.min}:1 | ${status} |`);
+    console.log(`| ${pair.name} | \`${pair.fg}\` | \`${pair.bg}\` | **${ratio.toFixed(2)}:1** | >= ${pair.min}:1 | ${status} |`);
   } catch (err) {
-    console.log(`| ${pair.name} | ${fgVal} | ${bgVal} | ERR | ${pair.min}:1 | ERROR: ${err.message} |`);
+    console.log(`| ${pair.name} | ${pair.fg} | ${pair.bg} | ERR | ${pair.min}:1 | ERROR: ${err.message} |`);
     hasFailure = true;
   }
 }
