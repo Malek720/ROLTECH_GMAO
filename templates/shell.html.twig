@@ -1,0 +1,16 @@
+{#
+  shell.html.twig — Intermediate layout that wraps content in the
+  sidebar+topbar app shell. All non-admin templates extend this instead
+  of base.html.twig directly. EasyAdmin extends its own base; it never
+  touches this file.
+#}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="rtn-shell">
+        {% include '_partials/nav.html.twig' %}
+        <div class="rtn-shell-content" id="rtn-main-content" tabindex="-1">
+            {% block shell_body %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}

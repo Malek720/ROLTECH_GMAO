@@ -1,35 +1,239 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Espace Responsable{% endblock %}
+{% block title %}Tableau de bord Responsable{% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
     {{ importmap('map') }}
 {% endblock %}
 
-{% block body %}
-<main class="rtn-dashboard">
-    <header class="rtn-dashboard-header">
-        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Responsable{% if site %} — {{ site.name }}{% else %} — Tous les sites{% endif %}</h1></div>
-        <nav class="rtn-dashboard-actions"><a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a><a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a><a class="rtn-button rtn-button-large" href="{{ path('responsable_dispatch') }}" data-turbo="false">Ouvrir le dispatch</a><a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a><a class="rtn-button rtn-button-large" href="{{ path('maintenance_plan') }}" data-turbo="false">Plan de maintenance</a><a class="rtn-button rtn-button-large" href="{{ path('kpi_index') }}" data-turbo="false">Indicateurs KPI</a><a class="rtn-button rtn-button-large" href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a></nav>
+{% block shell_body %}
+<main class="rtn-page rtn-page--dashboard">
+
+    {# ── Page header ────────────────────────────────────────── #}
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Espace Responsable</p>
+            <h1 class="rtn-page-title">
+                {% if site %}{{ site.name }}{% else %}Tous les sites{% endif %}
+            </h1>
+        </div>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm"
+               href="{{ path('maintenance_plan') }}"
+               data-turbo="false">
+                {{ icon('clipboard-list', 18) }}
+                Plan maintenance
+            </a>
+            <a class="rtn-btn rtn-btn-primary"
+               href="{{ path('responsable_dispatch') }}"
+               data-turbo="false">
+                {{ icon('git-pull-request', 18) }}
+                Dispatch
+            </a>
+        </div>
     </header>
-    <section class="rtn-dashboard-grid">
-        <div class="rtn-dashboard-card"><h2>À dispatcher</h2><strong class="rtn-dashboard-number">{{ faultsToDispatch|length }}</strong><p>pannes sans technicien affecté</p></div>
-        <div class="rtn-dashboard-card"><h2>Maintenance échue</h2><strong class="rtn-dashboard-number">{{ overdueSchedules|length }}</strong><p>tâches à traiter</p></div>
-        <div class="rtn-dashboard-card"><h2>Machines visibles</h2><strong class="rtn-dashboard-number">{{ machines|length }}</strong><p>machines suivies sur tous les sites</p></div>
+
+    {# ── Stat cards ─────────────────────────────────────────── #}
+    <section class="rtn-stat-grid" aria-label="Résumé">
+        <a class="rtn-stat-card rtn-stat-card--link{% if faultsToDispatch|length > 0 %} rtn-stat-card--alert{% endif %}"
+           href="{{ path('responsable_dispatch') }}"
+           data-turbo="false"
+           aria-label="{{ faultsToDispatch|length }} panne(s) à dispatcher">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('git-pull-request', 24) }}</span>
+            <strong class="rtn-stat-number{% if faultsToDispatch|length > 0 %} rtn-stat-number--danger{% endif %}">
+                {{ faultsToDispatch|length }}
+            </strong>
+            <span class="rtn-stat-label">À dispatcher</span>
+            <small class="rtn-stat-hint">Pannes sans technicien</small>
+        </a>
+
+        <a class="rtn-stat-card rtn-stat-card--link{% if overdueSchedules|length > 0 %} rtn-stat-card--warn{% endif %}"
+           href="{{ path('maintenance_plan') }}"
+           data-turbo="false"
+           aria-label="{{ overdueSchedules|length }} tâche(s) de maintenance échue(s)">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('clipboard-list', 24) }}</span>
+            <strong class="rtn-stat-number{% if overdueSchedules|length > 0 %} rtn-stat-number--warn{% endif %}">
+                {{ overdueSchedules|length }}
+            </strong>
+            <span class="rtn-stat-label">Maintenance échue</span>
+            <small class="rtn-stat-hint">Tâches à traiter</small>
+        </a>
+
+        <div class="rtn-stat-card"
+             aria-label="{{ machines|length }} machine(s) suivie(s)">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('boxes', 24) }}</span>
+            <strong class="rtn-stat-number">{{ machines|length }}</strong>
+            <span class="rtn-stat-label">Machines</span>
+            <small class="rtn-stat-hint">Parc suivi</small>
+        </div>
     </section>
-    {{ render(controller('App\\Controller\\MapController::card')) }}
-    <section class="rtn-dashboard-card">
-        <h2>Machines par statut</h2>
-        <div class="rtn-status-grid">{% for status, count in machineCounts %}<div><strong>{{ count }}</strong><span>{{ status|capitalize }}</span></div>{% else %}<p>Aucune machine rattachée à votre site.</p>{% endfor %}</div>
+
+    {# ── Machines par statut ────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section" aria-labelledby="rtn-status-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-status-heading" class="rtn-card-title">
+                {{ icon('boxes', 20) }}
+                Machines par statut
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('machine_list') }}"
+               data-turbo="false">
+                Voir le parc {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {% if machineCounts is empty %}
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('boxes', 40) }}</span>
+                <p>Aucune machine rattachée.</p>
+            </div>
+        {% else %}
+            <div class="rtn-status-chips">
+                {% for status, count in machineCounts %}
+                <div class="rtn-status-chip">
+                    <strong class="rtn-status-chip-count">{{ count }}</strong>
+                    <span class="rtn-status-chip-label">{{ status|capitalize }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     </section>
-    <section class="rtn-dashboard-card">
-        <h2>Faults à dispatcher</h2>
-        {% for fault in faultsToDispatch %}<article class="rtn-dashboard-item"><div><strong>{{ fault.machine }}</strong><span>{{ fault.description }}</span></div><span class="rtn-pill">{{ fault.severity|capitalize }}</span></article>{% else %}<p>Aucune panne à dispatcher.</p>{% endfor %}
+
+    {# ── KPI link card ──────────────────────────────────────── #}
+    <a class="rtn-card rtn-card--kpi rtn-card--link"
+       href="{{ path('kpi_index') }}"
+       data-turbo="false"
+       aria-label="Ouvrir les indicateurs KPI">
+        <span class="rtn-card-kpi-icon" aria-hidden="true">{{ icon('bar-chart-3', 32) }}</span>
+        <div>
+            <strong class="rtn-card-kpi-title">Indicateurs KPI</strong>
+            <p class="rtn-card-kpi-desc">Taux de disponibilité, MTBF, coûts par modèle&hellip;</p>
+        </div>
+        <span class="rtn-card-kpi-arrow" aria-hidden="true">{{ icon('chevron-right', 24) }}</span>
+    </a>
+
+    {# ── Pannes à dispatcher ────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section" aria-labelledby="rtn-dispatch-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-dispatch-heading" class="rtn-card-title">
+                {{ icon('alert-triangle', 20) }}
+                Pannes à dispatcher
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('responsable_dispatch') }}"
+               data-turbo="false">
+                Ouvrir {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {% if faultsToDispatch is empty %}
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('git-pull-request', 40) }}</span>
+                <p>Aucune panne en attente de dispatch.</p>
+            </div>
+        {% else %}
+            <div class="rtn-table-wrapper rtn-table-dispatch-wrapper">
+                <table class="rtn-table" aria-label="Pannes à dispatcher">
+                    <thead>
+                        <tr>
+                            <th scope="col">Machine</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Sévérité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fault in faultsToDispatch %}
+                        <tr class="rtn-table-dispatch-row">
+                            <td><strong>{{ fault.machine }}</strong></td>
+                            <td>{{ fault.description }}</td>
+                            <td>{% include 'components/status_badge.html.twig' with {status: fault.severity} only %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <ul class="rtn-item-list rtn-item-list--phone-only" role="list">
+                {% for fault in faultsToDispatch %}
+                <li class="rtn-item">
+                    <div class="rtn-item-body">
+                        <strong class="rtn-item-title">{{ fault.machine }}</strong>
+                        <span class="rtn-item-desc">{{ fault.description }}</span>
+                    </div>
+                    {% include 'components/status_badge.html.twig' with {status: fault.severity} only %}
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </section>
-    <section class="rtn-dashboard-card">
-        <h2>Maintenance échue</h2>
-        {% for schedule in overdueSchedules %}<article class="rtn-dashboard-item"><div><strong>{{ schedule.machine }}</strong><span>{{ schedule.task.action }}</span></div><span class="rtn-pill rtn-pill-echue">Échue</span></article>{% else %}<p>Aucune tâche échue.</p>{% endfor %}
+
+    {# ── Maintenance échue ──────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section" aria-labelledby="rtn-overdue-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-overdue-heading" class="rtn-card-title">
+                {{ icon('clipboard-list', 20) }}
+                Maintenance échue
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('maintenance_plan') }}"
+               data-turbo="false">
+                Voir le plan {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {% if overdueSchedules is empty %}
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('clipboard-list', 40) }}</span>
+                <p>Aucune tâche de maintenance échue.</p>
+            </div>
+        {% else %}
+            <div class="rtn-table-wrapper rtn-table-dispatch-wrapper">
+                <table class="rtn-table" aria-label="Maintenance échue">
+                    <thead>
+                        <tr>
+                            <th scope="col">Machine</th>
+                            <th scope="col">Tâche</th>
+                            <th scope="col">État</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in overdueSchedules %}
+                        <tr>
+                            <td><strong>{{ schedule.machine }}</strong></td>
+                            <td>{{ schedule.task.action }}</td>
+                            <td><span class="rtn-badge rtn-badge-echue">{{ icon('alert-triangle', 14) }} Échue</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <ul class="rtn-item-list rtn-item-list--phone-only" role="list">
+                {% for schedule in overdueSchedules %}
+                <li class="rtn-item">
+                    <div class="rtn-item-body">
+                        <strong class="rtn-item-title">{{ schedule.machine }}</strong>
+                        <span class="rtn-item-desc">{{ schedule.task.action }}</span>
+                    </div>
+                    <span class="rtn-badge rtn-badge-echue">Échue</span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </section>
+
+    {# ── Carte compacte ─────────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section rtn-card--map" aria-labelledby="rtn-map-resp-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-map-resp-heading" class="rtn-card-title">
+                {{ icon('map', 20) }}
+                Carte des sites
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('map_index') }}"
+               data-turbo="false">
+                Ouvrir {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {{ render(controller('App\\Controller\\MapController::card')) }}
+    </section>
+
 </main>
-{% endblock %}
+{% endblock shell_body %}

@@ -217,3 +217,448 @@ Suite is idempotent. The 1 deprecation is pre-existing (not from phase 7).
 - Fault form → viewer → module dropdown binding — browser only.
 - Viewer resize when `<details>` opens — browser only.
 - GLB model loading — not implemented; no test.
+
+---
+
+## Phase 9b design brief
+
+### 1. App Shell & Layout
+- **Desktop (>= 1100px)**: Left sidebar echoing the EasyAdmin / Nord dashboard aesthetic:
+  - Header: RolTech GMAO brand mark (gradient `#88c0d0` to `#5e81ac`), application title, user role indicator.
+  - Navigation: Vertical menu with an icon next to every label, hover states, active indicator styling.
+  - Footer: User profile info block and logout action (`path('app_logout')`).
+  - Topbar above main content: Slim utility bar containing breadcrumb (`_partials/breadcrumb.html.twig`), global search trigger/input (`_partials/global_search.html.twig`), notification bell (`#rtn-bell`), and compact user menu.
+- **Tablet (640px – 1100px)**: Sidebar collapses to an icon rail with accessible tooltips/names (`aria-label`, `title`).
+- **Phone (< 640px)**:
+  - **Technicien**: Fixed bottom tab bar with 5 primary touch targets (Tableau de bord, Mes interventions, Déclarer une panne, Carte, Notifications with badge) + a "Plus" button opening a slide-over drawer for secondary links (Mes pannes, Parc machines, Déconnexion).
+  - **Responsable**: Slim top bar with a menu hamburger button opening a full slide-over drawer containing all navigation items.
+- **Role Scoping**:
+  - *Technicien*: Tableau de bord (`technicien_dashboard`), Carte (`map_index`), Parc machines (`machine_list`), Mes interventions (`interventions_mine`), Mes pannes (`faults_mine`), Déclarer une panne (`fault_new`), Notifications (`notifications`).
+  - *Responsable*: Tableau de bord (`responsable_dashboard`), Carte (`map_index`), Parc machines (`machine_list`), Dispatch (`responsable_dispatch`), Plan de maintenance (`maintenance_plan`), Indicateurs KPI (`kpi_index`), Déclarer une panne (`fault_new`), Notifications (`notifications`).
+  - *Admin link*: Displays "Administration" (`admin`) when `is_granted('ROLE_ADMIN')`.
+  - Hiding links is strictly cosmetic (firewall and voters enforce authorization per rules 1 and 37).
+
+### 2. Notification Bell & Preserved Hooks
+- `#rtn-bell` and its counter element retain their IDs, structure, and data source (`notification_count()`).
+- Pinned `position: fixed` at top-right is removed; element moves cleanly into the topbar (desktop/tablet) and bottom tab bar / drawer (phone).
+- Complete preserved hooks list:
+  - **DOM & Form IDs/Classes**: `#rtn-bell` (and notification counter), `#rtn-map`, `.rtn-map-widget`, `#rtn-kpi-data`, `#rtn-kpi-charts-root`, `#rtn-fault-viewer-collapsible`, `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url`, `.rtn-toasts[aria-live="polite"]`, `.rtn-toast`, `.rtn-toast-*`, `.rtn-field-error`, `ol.rtn-timeline`, `.rtn-breadcrumb`, `input[name="fault[_token]"]`, form field names `fault[*]`.
+  - **Data Attributes**: `[data-rtn-viewer]`, `data-url`, `data-machine-id`, `data-intervention-id`, `data-qr-url`, `data-model-visible`, `data-module`, `data-machine-model`, `data-viewer-url`, `data-sites`, `data-geojson-url`, `data-initialized`, `data-rtn-viewer-tree`, `data-rtn-viewer-wrapper`, `data-rtn-model-name`, `data-rtn-model-badge`, `data-rtn-load-text`, `data-rtn-panel-empty`, `data-rtn-panel-details`, `data-rtn-panel-announcer`, `data-rtn-module-code`, `data-rtn-module-name`, `data-rtn-module-badge`, `data-rtn-module-health`, `data-rtn-module-task`, `data-rtn-module-faults`, `data-rtn-module-parts`, `data-rtn-action-fault`, `data-rtn-action-timeline`, `data-can-see-timeline`, `data-rtn-no-machine`, `data-rtn-viewer-fallback-2d`, `data-turbo="false"`.
+  - **Print Rules**: `@media print { .rtn-viewer-layout, .rtn-viewer-section { display: none !important; } }`. Map and 3D viewer containers preserve their aspect ratios and min-dimensions.
+
+### 3. Inline SVG Icons & Attribution
+- Set: **Lucide Icons** ([lucide.dev](https://lucide.dev/)), ISC License, Copyright (c) Lucide Contributors; portions derived from Feather Icons, MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- Integration: Embedded inline SVG macro in `templates/_partials/icons.html.twig`: `{% macro icon(name, size = 20, class = '') %}`.
+- Icons used: `layout-dashboard`, `map`, `boxes`, `wrench`, `alert-triangle`, `plus-circle`, `git-pull-request`, `clipboard-list`, `bar-chart-3`, `bell`, `shield-check`, `log-out`, `search`, `menu`, `x`, `chevron-right`, `external-link`.
+
+### 4. Contrast & Accessibility (WCAG AA)
+- Verified via `tools/check-contrast.mjs` against WCAG AA criteria (>= 4.5:1 text, >= 3:1 UI borders / large text).
+- Resolved text contrast risks:
+  - Text on primary button `--rtn-primary` (`#5e81ac`): use dark label text `#020817` (>= 4.5:1) rather than white/light text.
+  - Text on danger badges/alerts on dark card: use lighter tint text (e.g. `#ffb4ab` / `#f38ba8`) while keeping brand `--rtn-danger` (`#bf616a`) for borders and icons.
+  - Links / text on dark cards: use `--rtn-accent` (`#88c0d0`) and hover (`#b9e6ef`) instead of dark `--rtn-primary`.
+  - Brand colors (`#5e81ac`, `#bf616a`, `#d08770`, `#a3be8c`) remain untouched for borders, icons, and large graphics (>= 3:1).
+
+### 5. Implementation Files
+- `assets/styles/rtn-ui.css`: Design tokens, layout shell, sidebar, topbar, bottom nav, cards, buttons, badges, tables, forms, toasts, motion.
+- `templates/_partials/icons.html.twig`: Inline SVG icon macro.
+- `templates/_partials/nav.html.twig`: Responsive navigation component (sidebar, topbar, drawer, mobile tab bar).
+- `assets/ui.js`: Vanilla JS for mobile drawer, collapsible rail, and toast auto-dismiss.
+- `tools/check-contrast.mjs`: Automated contrast verification script.
+
+### 6. Step Split & Roadmap
+- **Step 9b.2 (Design Tokens, Components, Icons & Contrast Script)**:
+  - Create `assets/styles/rtn-ui.css` (design tokens, button variants, badges, cards, toasts).
+  - Create `templates/_partials/icons.html.twig` with Lucide SVG paths.
+  - Create `tools/check-contrast.mjs` and execute contrast validation.
+  - Connect `assets/styles/rtn-ui.css` in `base.html.twig`.
+- **Step 9b.3 (Shell Layout, Navigation & Dashboards)**:
+  - Build `templates/_partials/nav.html.twig` (sidebar, topbar, mobile drawer/tabs).
+  - Create `assets/ui.js` (drawer toggling, accessibility).
+  - Integrate shell in `templates/base.html.twig`.
+  - Polish `templates/dashboard/technicien.html.twig` and `templates/dashboard/responsable.html.twig`.
+- **Step 9b.4 (Remaining Workflows & Template Refactoring)**:
+  - Refactor all remaining non-admin templates (`fault/*`, `intervention/*`, `notification/*`, `maintenance/plan`, `responsable/*`, `site/show`, `machine/index`, `machine/fiche`, `map/index`, `map/_card`, `kpi/index`, `search/results`).
+  - Move shared CSS from inline `<style>` blocks into `rtn-ui.css`.
+  - Make `.rtn-plan-table` responsive (stacked cards at <= 640px).
+  - Standardize header actions into clean `.rtn-actions` flex groups.
+
+
+---
+
+## Phase 9b — Step 9b.2: Design Foundation
+
+### 1. Icon Library Attribution & Licenses
+- **Lucide Icons**: ISC License, Copyright (c) Lucide Contributors.
+- **Feather Icons** (upstream portion): MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- Icons macro implemented in `templates/_partials/icons.html.twig`: `icon(name, size = 20, class = '')` returning inline SVG (`aria-hidden="true"`, `focusable="false"`, `stroke="currentColor"`, `fill="none"`).
+
+### 2. Contrast Validation (`tools/check-contrast.mjs`)
+- **Initial Run Failure**:
+  - `Card border on canvas`: `#3b465c` (`--rtn-border`) on `#020817` (`--rtn-bg-canvas`) yielded **2.11:1** (< 3.0:1 required for UI boundaries).
+- **Resolution**:
+  - Adjusted `--rtn-border` to `#566580` (cool Nord slate boundary) yielding **3.40:1** (PASS).
+  - Primary button label text uses `#020817` on `#88c0d0` yielding **10.00:1** (PASS).
+  - Danger status / badges use `--rtn-status-echue-text: #ffb4ab` on `#252d3e` yielding **8.12:1** (PASS) while preserving brand `--rtn-status-echue: #bf616a` for borders and icons.
+
+#### Final Contrast Ratios (All 19 Pairs Pass)
+| Pair Name | FG Token | BG Token | Ratio | Required | Result |
+|---|---|---|---|---|---|
+| Body text on canvas | `#eceff4` | `#020817` | **17.36:1** | >= 4.5:1 | PASS |
+| Body text on card | `#eceff4` | `#252d3e` | **11.96:1** | >= 4.5:1 | PASS |
+| Muted text on card | `#d8dee9` | `#252d3e` | **10.20:1** | >= 4.5:1 | PASS |
+| Link on card | `#88c0d0` | `#252d3e` | **6.89:1** | >= 4.5:1 | PASS |
+| Button primary label | `#020817` | `#88c0d0` | **10.00:1** | >= 4.5:1 | PASS |
+| Button secondary label | `#eceff4` | `#3b465c` | **8.22:1** | >= 4.5:1 | PASS |
+| Button ghost label on card | `#eceff4` | `#252d3e` | **11.96:1** | >= 4.5:1 | PASS |
+| Button danger label | `#020817` | `#bf616a` | **4.89:1** | >= 4.5:1 | PASS |
+| Badge OK text | `#a3be8c` | `#1e3328` | **6.61:1** | >= 4.5:1 | PASS |
+| Badge Proche text | `#d08770` | `#382822` | **4.94:1** | >= 4.5:1 | PASS |
+| Badge Echue text | `#ffb4ab` | `#3c1e24` | **8.81:1** | >= 4.5:1 | PASS |
+| Badge Warning text | `#ebcb8b` | `#3d331f` | **7.95:1** | >= 4.5:1 | PASS |
+| Status OK text on card | `#a3be8c` | `#252d3e` | **6.76:1** | >= 4.5:1 | PASS |
+| Status Proche text on card | `#d08770` | `#252d3e` | **4.84:1** | >= 4.5:1 | PASS |
+| Status Echue text on card | `#ffb4ab` | `#252d3e` | **8.12:1** | >= 4.5:1 | PASS |
+| Status Warning text on card | `#ebcb8b` | `#252d3e` | **8.83:1** | >= 4.5:1 | PASS |
+| Focus ring on card background | `#88c0d0` | `#252d3e` | **6.89:1** | >= 3.0:1 | PASS |
+| Focus ring on canvas | `#88c0d0` | `#020817` | **10.00:1** | >= 3.0:1 | PASS |
+| Card border on canvas | `#566580` | `#020817` | **3.40:1** | >= 3.0:1 | PASS |
+
+### 3. Verification & Safety
+- Templates linted: 37 files valid.
+- Functional test suite: 24 tests, 254 assertions, 0 failures, 0 errors.
+- Unchanged functional hooks: toast markup (`aria-live="polite"`), `#rtn-bell` intact, no database modifications.
+
+
+---
+
+## Phase 9b — Step 9b.3: App Shell, Navigation & Dashboards
+
+### Files created / modified
+
+| File | Action |
+|---|---|
+| `templates/_partials/nav.html.twig` | **Created** — responsive nav partial |
+| `templates/shell.html.twig` | **Created** — intermediate layout wrapping content in sidebar+topbar shell |
+| `assets/ui.js` | **Created** — vanilla JS: drawer, focus trap, inert, active-state sync, stagger, toast dismiss |
+| `assets/styles/rtn-ui.css` | **Extended** — shell layout, sidebar, topbar, stat cards, item list, drawers, tab bar, chips, motion rules |
+| `templates/base.html.twig` | **Modified** — loads `ui.js` as plain `<script defer>` via `asset()` (rule 5); removed old fixed `.rtn-bell` div and standalone global_search include; kept single `{% block body %}` |
+| `templates/dashboard/technicien.html.twig` | **Rewritten** — extends `shell.html.twig`; greeting header, 3 stat cards, interventions list, map card, notifications |
+| `templates/dashboard/responsable.html.twig` | **Rewritten** — extends `shell.html.twig`; stat cards, status chips, KPI link card, dispatch/maintenance tables (phone: stacked cards), map card |
+
+### Architecture decision: `shell.html.twig`
+
+Twig does not allow the same `{% block %}` name to appear twice in a single base template, even inside `{% if %}` branches. EasyAdmin uses its own base layout and never touches `base.html.twig`. The correct solution is an intermediate `shell.html.twig` that extends `base.html.twig` and declares a `{% block shell_body %}` inside its `{% block body %}`. All non-admin templates now extend `shell.html.twig`; admin templates continue to use EasyAdmin's own base.
+
+### Hooks preserved
+
+- `#rtn-bell`: moved from `position: fixed` div into sidebar footer (desktop) and topbar (tablet) and tab bar / drawer (phone). Same id, same `notification_count()` data source, no extra query.
+- `.rtn-toasts[aria-live="polite"]`: rendered in `base.html.twig` body block, below the shell, unchanged.
+- `#rtn-map`, `data-rtn-viewer`, all `data-*` attributes: untouched — only dashboard wrappers changed.
+- `data-turbo="false"` on all navigation links.
+- Breadcrumb and global search partials: included inside `nav.html.twig` topbar (search) and available for `{% block topbar_breadcrumb %}` extension.
+- Print stylesheets: viewer hidden, QR printed — untouched.
+
+### JS details
+
+- `ui.js` is a plain IIFE loaded with `asset('ui.js') defer`, not an importmap entry (rule 5).
+- All listeners registered synchronously via `attachGlobalListeners()` (rule 7).
+- `turbo:load` re-syncs active nav state and re-runs stat-card animation.
+- `turbo:before-cache` closes the drawer, releases `inert`, strips animation classes from cached snapshot.
+- `_listenersAttached` guard prevents duplicate listeners across Turbo visits.
+- Focus trap inside drawer handles `Tab`/`Shift+Tab`. Escape closes drawer and returns focus to trigger button.
+
+### Variables assumed available in nav.html.twig
+
+`notification_count()` Twig function (global, pre-existing — no new query).
+
+### Variables not available (noted for phase 9b.4)
+
+No new template variables needed. The dashboards use only variables already passed by their controllers (`interventions`, `notifications`, `faultsToDispatch`, `overdueSchedules`, `machines`, `machineCounts`, `site`).
+
+### What cannot be checked without a browser
+
+- Sidebar sticky behavior and scroll at 1280 px.
+- Icon rail tooltip on hover/focus at 768 px.
+- Bottom tab bar touch targets (44 px) at 375 px.
+- Drawer slide-in animation and focus management.
+- Stat card stagger animation (50 ms steps).
+- Active indicator slide-in CSS animation.
+- `prefers-reduced-motion` suppresses all animations.
+- Turbo navigation: active state re-syncs without page reload.
+- `inert` attribute fully suppresses background tab stops while drawer is open.
+
+
+---
+
+## Phase 9b — Step 9b.4: Remaining Workflows & Design System Refactoring
+
+### Files modified
+
+| File | Changes |
+|---|---|
+| `assets/styles/rtn-ui.css` | Added shared CSS for zones, site cards, responsive parc filters/tables, map wrapper/legend, KPI tables/charts, search items, machine fiche QR/modules/timeline, large touch targets (≥48px) for checklist and lockout rows. Responsive table and plan table become stacked cards at ≤640px. |
+| `templates/maintenance/plan.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, site filter card, responsive plan table with stacked card variant at ≤640px (no horizontal scroll at 375px), status badges with icons, empty state. |
+| `templates/site/show.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action buttons, zone sections with machine cards, removed inline style block, preserved `data-machine-id` and breadcrumbs. |
+| `templates/machine/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, collapsible filter card, responsive machine table with stacked card variant at ≤640px, status badges, preserved `data-machine-id` and breadcrumbs. |
+| `templates/map/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, map legend card, preserved `#rtn-map` (600px height), `data-sites`, `data-geojson-url` and breadcrumbs. |
+| `templates/kpi/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with CSV export action, date filter card, tables as primary reference, chart cards around `#rtn-kpi-charts-root`, preserved `#rtn-kpi-data`. |
+| `templates/search/results.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, machine and intervention results cards, status badges, empty states, preserved `data-machine-id` and `data-intervention-id`. |
+| `templates/machine/fiche.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action buttons, identity card, QR block preserving `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url` and print stylesheet, module cards, 3D viewer section, timeline preserving `ol.rtn-timeline`. |
+| `templates/fault/new.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, form with `rtn-field`, preserved collapsible 3D viewer, CSRF, submission token, dropdown IDs/names, and JavaScript bindings. |
+| `templates/fault/confirmation.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, detail list with status badges, preserved `#intervention` hook. |
+| `templates/fault/mine.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, item list with status badges, empty state with icon. |
+| `templates/fault/intervention.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, detail list with status badges, safety banner. |
+| `templates/notification/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, notification list with unread state & action buttons, empty state with icon. |
+| `templates/intervention/show.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, safety banner, large touch targets (≥48px) for lockout checkboxes and procedure steps, clear primary buttons. |
+| `templates/intervention/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, filter nav, card list with status badges, touch targets ≥48px, empty state with icon. |
+| `templates/responsable/dispatch.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action group, dispatch cards with status badges and technician dropdowns, empty state with icon. |
+| `templates/responsable/manual_intervention.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, form with `rtn-field` grid, primary submit button. |
+
+### Verification & Safety
+- Templates linted: `php bin/console lint:twig templates` (All 39 Twig files valid).
+- PHPUnit test suite: **132 tests, 593 assertions, 0 failures, 0 errors** (65 functional, 67 unit).
+- Unchanged functional hooks: `#rtn-bell`, `.rtn-toasts[aria-live="polite"]`, `#rtn-map`, `[data-rtn-viewer]`, `#rtn-kpi-data`, `#rtn-kpi-charts-root`, `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url`, `#rtn-fault-viewer-collapsible`, `ol.rtn-timeline`, `input[name="fault[_token]"]`, form field names `fault[*]`, print stylesheet hiding viewer and printing QR.
+
+
+---
+
+## Phase 9b — Step 9b.5: Verification, Design System Audit & Manual Test Script
+
+### 1. Verification Summary
+
+- **Database Safety**: Database connection verified against `roltech_gmao_copy_test` via `$env:DATABASE_URL="mysql://root:@127.0.0.1:3306/roltech_gmao_copy?serverVersion=10.4.32-MariaDB"` and `doctrine:query:sql "SELECT DATABASE()" --env=test`. Main database `roltech_gmao` untouched; no fixtures run.
+- **Twig Linter**: `php bin/console lint:twig templates` (All 39 Twig files valid).
+- **PHPUnit Test Suite**: Ran twice against `roltech_gmao_copy_test`:
+  - **Run 1**: **132 tests, 593 assertions, 0 failures, 0 errors, 1 deprecation**.
+  - **Run 2**: **132 tests, 593 assertions, 0 failures, 0 errors, 1 deprecation**.
+
+---
+
+### 2. Design Foundation & Tokens Reference
+
+All design tokens are defined in `assets/styles/rtn-ui.css` using the Nord color palette and semantic tokens:
+
+```css
+:root {
+  /* Nord Palette */
+  --rtn-nord0: #2e3440;  /* Dark background / Polar Night */
+  --rtn-nord1: #3b4252;  /* Elevated element / Polar Night */
+  --rtn-nord2: #434c5e;  /* Input highlight / Polar Night */
+  --rtn-nord3: #4c566a;  /* Subtle element / Polar Night */
+  --rtn-nord4: #d8dee9;  /* Muted text / Snow Storm */
+  --rtn-nord5: #e5e9f0;  /* Standard text / Snow Storm */
+  --rtn-nord6: #eceff4;  /* High-contrast text / Snow Storm */
+  --rtn-nord7: #8fbcbb;  /* Frost teal */
+  --rtn-nord8: #88c0d0;  /* Frost cyan / Accent */
+  --rtn-nord9: #81a1c1;  /* Frost blue */
+  --rtn-nord10: #5e81ac; /* Frost dark blue */
+  --rtn-nord11: #bf616a; /* Aurora red / Danger */
+  --rtn-nord12: #d08770; /* Aurora orange / Warning / Proche */
+  --rtn-nord13: #ebcb8b; /* Aurora yellow / Alert */
+  --rtn-nord14: #a3be8c; /* Aurora green / OK */
+  --rtn-nord15: #b48ead; /* Aurora purple / Demo */
+
+  /* Semantic Theme Tokens */
+  --rtn-bg-canvas: #020817;
+  --rtn-bg-card: #252d3e;
+  --rtn-bg-surface-elevated: #2e384d;
+  --rtn-bg-input: #1b2435;
+  --rtn-border: #566580;
+  --rtn-border-subtle: #2e384d;
+  --rtn-border-focus: #88c0d0;
+  --rtn-text: #eceff4;
+  --rtn-text-muted: #d8dee9;
+  --rtn-text-subtle: #94a3b8;
+  --rtn-link: #88c0d0;
+  --rtn-link-hover: #b9e6ef;
+
+  /* Button Tokens */
+  --rtn-btn-primary-bg: #88c0d0;
+  --rtn-btn-primary-text: #020817;
+  --rtn-btn-secondary-bg: #3b465c;
+  --rtn-btn-secondary-text: #eceff4;
+  --rtn-btn-ghost-text: #eceff4;
+  --rtn-btn-danger-bg: #bf616a;
+  --rtn-btn-danger-text: #020817;
+
+  /* Focus & Elevation */
+  --rtn-focus-ring: #88c0d0;
+  --rtn-radius-sm: 6px;
+  --rtn-radius-md: 10px;
+  --rtn-radius-lg: 14px;
+  --rtn-radius-pill: 999px;
+  --rtn-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.25);
+  --rtn-shadow-md: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --rtn-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+```
+
+#### Shared Components
+- **Shell**: `.rtn-shell`, `.rtn-sidebar`, `.rtn-topbar`, `.rtn-tab-bar`, `.rtn-mobile-topbar`, `.rtn-drawer`.
+- **Cards**: `.rtn-card`, `.rtn-stat-card`, `.rtn-card--kpi`, `.rtn-item`.
+- **Buttons**: `.rtn-btn`, `.rtn-btn-primary`, `.rtn-btn-secondary`, `.rtn-btn-ghost`, `.rtn-btn-danger`, `.rtn-btn-cta`.
+- **Forms**: `.rtn-form`, `.rtn-field`, `.rtn-field-label`, `.rtn-input`, `.rtn-check-row` (min-height 48px), `.rtn-part-row`.
+- **Feedback**: `.rtn-toasts[aria-live="polite"]`, `.rtn-toast`, `.rtn-badge`, `templates/components/status_badge.html.twig`.
+- **Responsive Tables**: `.rtn-table`, `.rtn-machine-table`, `.rtn-plan-table` (shifts to stacked card view at $\le 640$px).
+
+---
+
+### 3. Icon Library Attribution & Licenses
+
+- **Lucide Icons**: ISC License, Copyright (c) Lucide Contributors ([lucide.dev](https://lucide.dev/)).
+- **Feather Icons**: MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- **Implementation**: Pure inline SVG macro in `templates/_partials/icons.html.twig`:
+  - `{{ icon(name, size = 20, class = '') }}`
+  - Attributes: `aria-hidden="true"`, `focusable="false"`, `stroke="currentColor"`, `fill="none"`, `stroke-width="2"`, `stroke-linecap="round"`, `stroke-linejoin="round"`.
+  - Zero external CDN dependencies (rule 22 compliant).
+
+---
+
+### 4. Motion Guidelines
+
+- **Duration & Timing**: 150ms – 250ms, `ease-out`.
+- **Properties**: Strictly `transform` and `opacity` to maintain 60fps compositor-driven rendering.
+- **Reduced Motion Support**:
+  - CSS override: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .rtn-card:hover, .rtn-dashboard-card:hover, .rtn-stat-card--link:hover { transform: none !important; } }`.
+  - JavaScript guard in `assets/ui.js`: `prefersReducedMotion()` checks `window.matchMedia('(prefers-reduced-motion: reduce)').matches` before triggering staggered stat-card animations.
+
+---
+
+### 5. Automated Contrast Check (`tools/check-contrast.mjs`)
+
+Verification script output:
+
+| Pair Name | FG Token (Hex) | BG Token (Hex) | Ratio | Required | Result |
+|---|---|---|---|---|---|
+| Body text on canvas | `#eceff4` (`--rtn-text`) | `#020817` (`--rtn-bg-canvas`) | **17.36:1** | $\ge 4.5:1$ | **PASS** |
+| Body text on card | `#eceff4` (`--rtn-text`) | `#252d3e` (`--rtn-bg-card`) | **11.96:1** | $\ge 4.5:1$ | **PASS** |
+| Muted text on card | `#d8dee9` (`--rtn-text-muted`) | `#252d3e` (`--rtn-bg-card`) | **10.20:1** | $\ge 4.5:1$ | **PASS** |
+| Link on card | `#88c0d0` (`--rtn-link`) | `#252d3e` (`--rtn-bg-card`) | **6.89:1** | $\ge 4.5:1$ | **PASS** |
+| Button primary label | `#020817` (`--rtn-btn-primary-text`) | `#88c0d0` (`--rtn-btn-primary-bg`) | **10.00:1** | $\ge 4.5:1$ | **PASS** |
+| Button secondary label | `#eceff4` (`--rtn-btn-secondary-text`) | `#3b465c` (`--rtn-btn-secondary-bg`) | **8.22:1** | $\ge 4.5:1$ | **PASS** |
+| Button ghost label on card | `#eceff4` (`--rtn-btn-ghost-text`) | `#252d3e` (`--rtn-bg-card`) | **11.96:1** | $\ge 4.5:1$ | **PASS** |
+| Button danger label | `#020817` (`--rtn-btn-danger-text`) | `#bf616a` (`--rtn-btn-danger-bg`) | **4.89:1** | $\ge 4.5:1$ | **PASS** |
+| Badge OK text | `#a3be8c` (`--rtn-badge-ok-text`) | `#1e3328` (`--rtn-badge-ok-bg`) | **6.61:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Proche text | `#d08770` (`--rtn-badge-proche-text`) | `#382822` (`--rtn-badge-proche-bg`) | **4.94:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Echue text | `#ffb4ab` (`--rtn-badge-echue-text`) | `#3c1e24` (`--rtn-badge-echue-bg`) | **8.81:1** | $\ge 4.5:1$ | **PASS** |
+| Badge Warning text | `#ebcb8b` (`--rtn-badge-warning-text`) | `#3d331f` (`--rtn-badge-warning-bg`) | **7.95:1** | $\ge 4.5:1$ | **PASS** |
+| Status OK text on card | `#a3be8c` (`--rtn-status-ok-text`) | `#252d3e` (`--rtn-bg-card`) | **6.76:1** | $\ge 4.5:1$ | **PASS** |
+| Status Proche text on card | `#d08770` (`--rtn-status-proche-text`) | `#252d3e` (`--rtn-bg-card`) | **4.84:1** | $\ge 4.5:1$ | **PASS** |
+| Status Echue text on card | `#ffb4ab` (`--rtn-status-echue-text`) | `#252d3e` (`--rtn-bg-card`) | **8.12:1** | $\ge 4.5:1$ | **PASS** |
+| Status Warning text on card | `#ebcb8b` (`--rtn-status-warning-text`) | `#252d3e` (`--rtn-bg-card`) | **8.83:1** | $\ge 4.5:1$ | **PASS** |
+| Focus ring on card background | `#88c0d0` (`--rtn-focus-ring`) | `#252d3e` (`--rtn-bg-card`) | **6.89:1** | $\ge 3.0:1$ | **PASS** |
+| Focus ring on canvas | `#88c0d0` (`--rtn-focus-ring`) | `#020817` (`--rtn-bg-canvas`) | **10.00:1** | $\ge 3.0:1$ | **PASS** |
+| Card border on canvas | `#566580` (`--rtn-border`) | `#020817` (`--rtn-bg-canvas`) | **3.40:1** | $\ge 3.0:1$ | **PASS** |
+
+---
+
+### 6. Navigation Menu per Role
+
+| Role | Desktop Sidebar ($\ge 1100$px) & Tablet Rail (640–1100px) | Mobile Phone ($< 640$px) |
+|---|---|---|
+| **Technicien** | • Tableau de bord (`technicien_dashboard`)<br>• Mes interventions (`interventions_mine`)<br>• Déclarer une panne (`fault_new`)<br>• Carte (`map_index`)<br>• Notifications (`notifications`)<br>• Mes pannes (`faults_mine`)<br>• Parc machines (`machine_list`)<br>• Déconnexion (`app_logout`) | **Bottom tab bar (5 primary targets)**:<br>1. Tableau de bord<br>2. Mes interventions<br>3. Déclarer une panne<br>4. Carte<br>5. Notifications (avec badge non lu)<br>+ **Bouton "Plus"** (ouvre le slide-over drawer pour *Mes pannes*, *Parc machines*, *Déconnexion*). |
+| **Responsable** | • Tableau de bord (`responsable_dashboard`)<br>• Carte (`map_index`)<br>• Parc machines (`machine_list`)<br>• Dispatch (`responsable_dispatch`)<br>• Plan maintenance (`maintenance_plan`)<br>• Indicateurs KPI (`kpi_index`)<br>• Déclarer panne (`fault_new`)<br>• Notifications (`notifications`)<br>• Déconnexion (`app_logout`) | **Top bar slim** avec marque + cloche notifications + bouton menu hamburger (`#rtn-drawer-btn`) ouvrant le slide-over drawer complet. |
+| **Administrateur** | Items responsable + lien discret "Administration" (`/admin`) dans le pied de barre latérale et le drawer. | Identique responsable + lien "Administration" dans le drawer. |
+
+---
+
+### 7. Accessibility Audit & Conformance
+
+1. **Form Labels**: Every `<input>`, `<select>`, and `<textarea>` has an explicit `<label for="...">`, a wrapping `<label class="rtn-field">`, or an explicit `aria-label`.
+2. **Icon-only Controls**: All icon-only elements have accessible text via `aria-label` or `title` (`#rtn-bell`, `#rtn-drawer-btn`, `#rtn-drawer-close`, `.rtn-sidebar-logout`, `.rtn-sidebar-admin-link`).
+3. **No Meaning by Color Alone**: Every status indicator combines text, distinct icon, and color via `templates/components/status_badge.html.twig` or dedicated badge classes (Rule 24).
+4. **Skip Link**: Accessible `<a href="#rtn-main-content" class="rtn-skip-link">Aller au contenu</a>` targets `<div id="rtn-main-content" tabindex="-1">`.
+5. **Headings**: Strictly one `h1` per page (`.rtn-page-title`), followed hierarchically by `h2` and `h3` with zero skipped levels.
+6. **Focus Ring**: `:focus-visible` sets a 2px outline with `--rtn-focus-ring` (`#88c0d0`, contrast ratio 6.89:1 on cards and 10.00:1 on canvas).
+7. **Mobile Drawer Focus**: Focus moves to `#rtn-drawer-close` upon opening, background elements receive `inert`, Tab key is trapped inside, and closing returns focus directly to `#rtn-drawer-btn`.
+8. **Toast Region**: Flash messages rendered in `<div class="rtn-toasts" aria-live="polite">` in `base.html.twig` (Rule 21).
+9. **Table Headers**: All table columns declare `<th scope="col">`.
+10. **Touch Targets**: All interactive controls on technician mobile pages meet or exceed the 44px standard (buttons and inputs $\ge 44$px, checklist rows $\ge 48$px, bottom tabs $\ge 56$px).
+11. **Responsive Viewports**: No horizontal blowout at 375px (`.rtn-plan-table` shifts to stacked card view, data tables wrapped in `.rtn-table-scroll`).
+12. **Print Stylesheet**: Machine fiche prints identity and QR code cleanly on white paper; all navigation (`.rtn-sidebar`, `.rtn-topbar`, `.rtn-tab-bar`, `.rtn-mobile-topbar`, `.rtn-drawer`, `.rtn-bell`, `.rtn-toasts`) and the 3D viewer are hidden (`display: none !important;`).
+
+---
+
+### 8. Dead-Code Candidates (Read-Only Inventory)
+
+- **Template**: `templates/dashboard/placeholder.html.twig` (unreferenced by any controller or template).
+- **CSS Classes in Legacy Inline Styles**: `.rtn-dashboard-item`, `.rtn-status-grid`, `.rtn-action-card` (unreferenced in any template, removed along with the duplicate style block in `base.html.twig`).
+
+---
+
+### 9. What Could Not Be Tested Without a Browser
+
+- Real touch responsiveness and tap gesture behavior on physical iOS and Android mobile screens at 375px.
+- WebGL 3D viewer hardware acceleration and frame rate stability alongside CSS transitions.
+- Pixel-perfect rendering of the browser native print preview dialog (margins, headers/footers) across Chromium, Gecko, and WebKit engines.
+- Screen reader verbal announcements (NVDA, JAWS, VoiceOver) during dynamic DOM live-region updates and `inert` tree isolation.
+
+---
+
+### 10. Requirements With No Test
+
+- **Responsive Viewport Media Queries**: Breakpoint shifts at 640px and 1100px are CSS rules (`assets/styles/rtn-ui.css`), not tested by backend PHPUnit assertions.
+- **Client-Side Focus Trapping & Drawer Animation**: Vanilla JavaScript in `assets/ui.js` operates entirely in the browser DOM and is not simulated by Symfony WebTestCase (which tests server-rendered HTML).
+
+---
+
+### 11. Manual UI Test Script
+
+#### Setup & Credentials
+- **Technicien**: `karim@roltech.tn` / `password`
+- **Responsable**: `responsable@roltech.tn` / `password`
+- **Admin**: `admin@roltech.tn` / `password`
+
+#### Test Scenarios
+
+1. **Desktop Viewport (1280px)**:
+   - Log in as Karim (`karim@roltech.tn`).
+   - Confirm full left sidebar is visible with brand mark, labels, notification badge, and user email.
+   - Navigate to *Tableau de bord*, *Mes interventions*, *Déclarer une panne*, *Carte*, *Notifications*.
+   - Verify active menu item displays the cyan indicator bar and `aria-current="page"`.
+   - Log out, log in as Responsable (`responsable@roltech.tn`).
+   - Confirm Responsable items (*Dispatch*, *Plan maintenance*, *Indicateurs KPI*) appear in the sidebar.
+
+2. **Tablet Viewport (768px)**:
+   - Resize browser to 768px width.
+   - Confirm sidebar collapses smoothly to an icon rail (68px width) with tooltips (`title` and `aria-label`).
+   - Confirm main content expands to fill the remaining width without horizontal scrollbars.
+
+3. **Mobile Phone Viewport (375px)**:
+   - Open DevTools device toolbar set to iPhone SE (375px width).
+   - Log in as Karim:
+     - Verify bottom tab bar displays 5 touch targets: *Tableau*, *Interventions*, *Déclarer*, *Carte*, *Notifs*.
+     - Tap "Plus": slide-over drawer opens from left; backdrop dims background.
+     - Confirm focus is placed inside the drawer. Press `Escape` or tap "Fermer": drawer closes, focus returns to "Plus".
+     - Inspect touch targets: verify every button, checklist item, and bottom tab is $\ge 44$px.
+     - Navigate to *Plan de maintenance* (`/maintenance/plan`): verify plan rows stack vertically as readable cards with `data-label` titles and no horizontal page scroll.
+   - Log in as Responsable:
+     - Verify slim topbar with hamburger menu button.
+     - Tap hamburger: full navigation drawer opens smoothly.
+
+4. **Keyboard-Only Navigation**:
+   - Press `Tab` upon page load: verify the "Aller au contenu" skip link becomes visible at top-left.
+   - Press `Enter`: focus jumps directly to `#rtn-main-content`.
+   - Navigate the fault declaration form (`/panne/declarer`) using only `Tab`, `Arrow keys`, and `Enter`:
+     - Verify clear cyan focus ring (`:focus-visible`) on every field, dropdown, and button.
+     - Submit an empty form: verify inline French validation messages appear and receive focus.
+
+5. **Reduced Motion Emulation**:
+   - In Chrome DevTools, open the **Rendering** tab (`Ctrl+Shift+P` -> `Show Rendering`).
+   - Set *Emulate CSS media feature prefers-reduced-motion* to `prefers-reduced-motion: reduce`.
+   - Navigate between pages: verify stat cards and drawer open instantly without transitions or staggered sliding.
+
+6. **Print Preview**:
+   - Open any machine fiche (e.g. `/machine/1`).
+   - Press `Ctrl+P` (Print):
+     - Confirm preview shows white background with black text.
+     - Confirm QR code and machine serial/specifications are prominently displayed.
+     - Confirm sidebar, topbar, tab bar, action buttons, edit form, and 3D viewer are hidden.
+
+7. **Lighthouse Accessibility Audit**:
+   - Run Lighthouse Accessibility audit in Chrome DevTools on:
+     - `/` (Dashboard)
+     - `/machine/1` (Fiche machine)
+     - `/panne/declarer` (Déclaration panne)
+   - Target score: **$\ge 98/100$** (zero color contrast failures, complete ARIA landmark labeling, valid heading structures).

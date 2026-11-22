@@ -1,30 +1,51 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Mes pannes déclarées{% endblock %}
+{% block title %}Mes pannes déclarées — RolTech GMAO{% endblock %}
 
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
-    <nav class="rtn-nav">
-        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
-        <a href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
-        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
-    </nav>
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Historique personnel</p>
+            <h1 class="rtn-page-title">
+                {{ icon('alert-triangle', 28) }}
+                Mes pannes déclarées
+            </h1>
+            <p class="rtn-page-desc">Suivi des pannes que vous avez signalées et leur statut de prise en charge.</p>
+        </div>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-primary rtn-btn-sm" href="{{ path('fault_new') }}" data-turbo="false">
+                {{ icon('plus-circle', 18) }}
+                Déclarer une panne
+            </a>
+        </div>
+    </header>
+
     <section class="rtn-card">
-        <h1>Mes pannes déclarées</h1>
+        <div class="rtn-card-header">
+            <h2 class="rtn-card-title">
+                {{ icon('clipboard-list', 20) }}
+                Pannes signalées
+            </h2>
+        </div>
         {% for fault in faults %}
-            <article class="rtn-dashboard-item">
-                <div>
+            <article class="rtn-item" style="padding:14px 0;border-bottom:1px solid var(--rtn-border);">
+                <div class="rtn-item-body">
                     <strong>{{ fault.machine }} — {{ fault.machine.machineModel.code }}</strong>
-                    <span>{{ fault.reportedAt|date('d/m/Y H:i') }} · {{ fault.description }}</span>
+                    <span class="rtn-item-desc">{{ fault.reportedAt|date('d/m/Y H:i') }} · {{ fault.description }}</span>
                 </div>
-                <span class="rtn-status-grid">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     {% include 'components/status_badge.html.twig' with {status: fault.status} only %}
                     {% include 'components/status_badge.html.twig' with {status: fault.severity} only %}
-                    <a href="{{ path('fault_confirmation', {id: fault.id}) }}">Voir</a>
-                </span>
+                    <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('fault_confirmation', {id: fault.id}) }}">Voir</a>
+                </div>
             </article>
         {% else %}
-            <p>Aucune panne déclarée.</p>
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('alert-triangle', 40) }}</span>
+                <p>Aucune panne déclarée.</p>
+            </div>
         {% endfor %}
     </section>
 </main>

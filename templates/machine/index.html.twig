@@ -1,71 +1,9 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
 {% block title %}Parc Machines — RolTech GMAO{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-        .rtn-filters-card {
-            background: #252d3e;
-            border: 1px solid #3b465c;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 0 auto 24px;
-            max-width: 1180px;
-        }
-        .rtn-filters-form {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1.2fr 1.2fr auto;
-            gap: 14px;
-            align-items: end;
-        }
-        @media (max-width: 900px) {
-            .rtn-filters-form {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        @media (max-width: 600px) {
-            .rtn-filters-form {
-                grid-template-columns: 1fr;
-            }
-        }
-        .rtn-machine-table-wrapper {
-            max-width: 1180px;
-            margin: 0 auto 24px;
-            background: #252d3e;
-            border: 1px solid #3b465c;
-            border-radius: 14px;
-            overflow-x: auto;
-        }
-        .rtn-machine-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .92rem;
-            color: #eceff4;
-        }
-        .rtn-machine-table th {
-            background: #1b2435;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 700;
-            color: #88c0d0;
-            border-bottom: 1px solid #3b465c;
-        }
-        .rtn-machine-table td {
-            padding: 14px 16px;
-            border-bottom: 1px solid #3b465c;
-            vertical-align: middle;
-        }
-        .rtn-machine-table tr:last-child td {
-            border-bottom: none;
-        }
-        .rtn-machine-table tr:hover td {
-            background: #2e384d;
-        }
-    </style>
-{% endblock %}
-
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
     {% include '_partials/breadcrumb.html.twig' with {
         items: [
@@ -74,48 +12,65 @@
         ]
     } only %}
 
-    <header class="rtn-dashboard-header">
+    <header class="rtn-page-header">
         <div>
             <p class="rtn-eyebrow">Inventaire du parc</p>
-            <h1>Parc des machines</h1>
+            <h1 class="rtn-page-title">
+                {{ icon('boxes', 28) }}
+                Parc des machines
+            </h1>
+            <p class="rtn-page-desc">Recherche, consultation et état opérationnel de l'ensemble du parc machines.</p>
         </div>
-        <nav class="rtn-dashboard-actions">
+        <div class="rtn-actions">
             {% if is_granted('ROLE_RESPONSABLE') %}
-                <a class="rtn-button rtn-button-large" href="{{ path('responsable_dashboard') }}" data-turbo="false">Tableau de bord</a>
+                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('responsable_dashboard') }}" data-turbo="false">
+                    {{ icon('layout-dashboard', 18) }}
+                    Tableau de bord
+                </a>
             {% elseif is_granted('ROLE_TECHNICIEN') %}
-                <a class="rtn-button rtn-button-large" href="{{ path('technicien_dashboard') }}" data-turbo="false">Tableau de bord</a>
+                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('technicien_dashboard') }}" data-turbo="false">
+                    {{ icon('layout-dashboard', 18) }}
+                    Tableau de bord
+                </a>
             {% endif %}
-            <a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a>
-        </nav>
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('map_index') }}" data-turbo="false">
+                {{ icon('map', 18) }}
+                Carte des sites
+            </a>
+        </div>
     </header>
 
-    <section class="rtn-filters-card">
+    <details class="rtn-card rtn-filters-card" open>
+        <summary class="rtn-card-title" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            {{ icon('search', 18) }}
+            <span>Filtres de recherche</span>
+        </summary>
         <form method="get" action="{{ path('machine_list') }}" class="rtn-filters-form">
-            <div class="rtn-form-field">
-                <label for="filter-q">Recherche</label>
-                <input id="filter-q" type="search" name="q" value="{{ filters.q }}" placeholder="Nom, série, modèle...">
+            <div class="rtn-field">
+                <label for="filter-q" class="rtn-field-label">Recherche</label>
+                <input id="filter-q" class="rtn-input" type="search" name="q" value="{{ filters.q }}" placeholder="Nom, série, modèle...">
             </div>
-            <div class="rtn-form-field">
-                <label for="filter-status">Statut</label>
-                <select id="filter-status" name="status">
+            <div class="rtn-field">
+                <label for="filter-status" class="rtn-field-label">Statut</label>
+                <select id="filter-status" class="rtn-input" name="status">
                     <option value="">Tous les statuts</option>
                     <option value="en service" {% if filters.status == 'en service' %}selected{% endif %}>En service</option>
                     <option value="en panne" {% if filters.status == 'en panne' %}selected{% endif %}>En panne</option>
                     <option value="en maintenance" {% if filters.status == 'en maintenance' %}selected{% endif %}>En maintenance</option>
                 </select>
             </div>
-            <div class="rtn-form-field">
-                <label for="filter-model">Modèle</label>
-                <select id="filter-model" name="model">
+            <div class="rtn-field">
+                <label for="filter-model" class="rtn-field-label">Modèle</label>
+                <select id="filter-model" class="rtn-input" name="model">
                     <option value="">Tous les modèles</option>
                     {% for m in models %}
                         <option value="{{ m.id }}" {% if filters.model == m.id ~ '' %}selected{% endif %}>{{ m.code }} ({{ m.name }})</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="rtn-form-field">
-                <label for="filter-family">Famille</label>
-                <select id="filter-family" name="family">
+            <div class="rtn-field">
+                <label for="filter-family" class="rtn-field-label">Famille</label>
+                <select id="filter-family" class="rtn-input" name="family">
                     <option value="">Toutes les familles</option>
                     {% for f in families %}
                         <option value="{{ f }}" {% if filters.family == f %}selected{% endif %}>{{ f }}</option>
@@ -123,57 +78,63 @@
                 </select>
             </div>
             <div>
-                <button type="submit" class="rtn-button rtn-touch-link" style="width:100%;">Filtrer</button>
+                <button type="submit" class="rtn-btn rtn-btn-primary" style="width:100%;">
+                    {{ icon('search', 18) }}
+                    Filtrer
+                </button>
             </div>
         </form>
-    </section>
+    </details>
 
     <div class="rtn-machine-table-wrapper">
         <table class="rtn-machine-table">
             <thead>
                 <tr>
-                    <th>Machine</th>
-                    <th>N° Série</th>
-                    <th>Site</th>
-                    <th>Zone</th>
-                    <th>Modèle</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
+                    <th scope="col">Machine</th>
+                    <th scope="col">N° Série</th>
+                    <th scope="col">Site</th>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Modèle</th>
+                    <th scope="col">Statut</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for machine in machines %}
                     <tr data-machine-id="{{ machine.id }}">
-                        <td><strong>{{ machine.name }}</strong></td>
-                        <td style="font-family:monospace;color:#88c0d0;">{{ machine.serialNumber }}</td>
-                        <td>
+                        <td data-label="Machine"><strong>{{ machine.name }}</strong></td>
+                        <td data-label="N° Série" style="font-family:monospace;color:var(--rtn-accent);">{{ machine.serialNumber }}</td>
+                        <td data-label="Site">
                             {% if machine.site %}
                                 <a href="{{ path('site_show', {id: machine.site.id}) }}" data-turbo="false">{{ machine.site.name }}</a>
                             {% else %}
-                                <span style="color:#4c566a;">Non affecté</span>
+                                <span style="color:var(--rtn-text-subtle);">Non affecté</span>
                             {% endif %}
                         </td>
-                        <td>{{ machine.location ?: '—' }}</td>
-                        <td>
+                        <td data-label="Zone">{{ machine.location ?: '—' }}</td>
+                        <td data-label="Modèle">
                             <span>{{ machine.machineModel.code }}</span>
                             {% include 'components/status_badge.html.twig' with {status: machine.machineModel.dataStatus} only %}
                         </td>
-                        <td>
+                        <td data-label="Statut">
                             {% include 'components/status_badge.html.twig' with {status: machine.status} only %}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                 {% if is_granted('ROLE_RESPONSABLE') %}
-                                    <a class="rtn-button rtn-touch-link" style="padding:6px 10px;font-size:.82rem;" href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Fiche</a>
+                                    <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Fiche</a>
                                 {% endif %}
-                                <a class="rtn-button rtn-button-secondary rtn-touch-link" style="padding:6px 10px;font-size:.82rem;" href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Panne</a>
+                                <a class="rtn-btn rtn-btn-primary rtn-btn-sm" href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Panne</a>
                             </div>
                         </td>
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="7" style="text-align:center;padding:32px;color:#d8dee9;">
-                            Aucune machine trouvée pour ces critères.
+                        <td colspan="7">
+                            <div class="rtn-empty">
+                                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('boxes', 40) }}</span>
+                                <p>Aucune machine trouvée pour ces critères.</p>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}

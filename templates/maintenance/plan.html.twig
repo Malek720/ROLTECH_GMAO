@@ -1,35 +1,67 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Plan de maintenance{% endblock %}
+{% block title %}Plan de maintenance — RolTech GMAO{% endblock %}
 
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
-    <header class="rtn-dashboard-header">
-        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Plan de maintenance</h1></div>
-        <nav class="rtn-nav"><a href="{{ path('responsable_dashboard') }}">Tableau de bord</a><a href="{{ path('app_logout') }}">Se déconnecter</a></nav>
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Maintenance préventive</p>
+            <h1 class="rtn-page-title">
+                {{ icon('clipboard-list', 28) }}
+                Plan de maintenance
+            </h1>
+            <p class="rtn-page-desc">Suivi et échéances des tâches de maintenance programmées par site.</p>
+        </div>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('responsable_dashboard') }}" data-turbo="false">
+                {{ icon('layout-dashboard', 18) }}
+                Tableau de bord
+            </a>
+        </div>
     </header>
+
     <section class="rtn-card">
         <form method="get" class="rtn-form">
-            <label class="rtn-form-field">Site
-                <select name="site" {% if sites|length <= 1 %}disabled{% endif %}>
+            <label class="rtn-field">
+                <span class="rtn-field-label">Filtrer par site</span>
+                <select name="site" class="rtn-input" onchange="this.form.submit()" {% if sites|length <= 1 %}disabled{% endif %}>
                     {% for site in sites %}<option value="{{ site.id }}" {% if selectedSite == site.id %}selected{% endif %}>{{ site }}</option>{% endfor %}
                 </select>
             </label>
         </form>
     </section>
+
     <section class="rtn-card">
-        <h2>Tâches planifiées</h2>
+        <div class="rtn-card-header">
+            <h2 class="rtn-card-title">
+                {{ icon('clipboard-list', 20) }}
+                Tâches planifiées
+            </h2>
+        </div>
         <div class="rtn-plan-table">
-            <div class="rtn-plan-row rtn-plan-header"><span>Machine</span><span>Site</span><span>Tâche</span><span>Échéance</span><span>État</span></div>
+            <div class="rtn-plan-row rtn-plan-header">
+                <span>Machine</span>
+                <span>Site</span>
+                <span>Tâche</span>
+                <span>Échéance</span>
+                <span>État</span>
+            </div>
             {% for schedule in schedules %}
                 <div class="rtn-plan-row">
-                    <span><a href="{{ path('machine_fiche', {id: schedule.machine.id}) }}">{{ schedule.machine }}</a></span>
-                    <span>{{ schedule.machine.site }}</span>
-                    <span>{{ schedule.task }}</span>
-                    <span>{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span>
-                    <span class="rtn-pill rtn-pill-{{ schedule.state }}">{{ schedule.state|capitalize }}</span>
+                    <span data-label="Machine"><a href="{{ path('machine_fiche', {id: schedule.machine.id}) }}" data-turbo="false">{{ schedule.machine }}</a></span>
+                    <span data-label="Site">{{ schedule.machine.site }}</span>
+                    <span data-label="Tâche">{{ schedule.task }}</span>
+                    <span data-label="Échéance">{{ schedule.nextDueDate|date('d/m/Y') }} / {{ schedule.nextDueHours }} h</span>
+                    <span data-label="État">{% include 'components/status_badge.html.twig' with {status: schedule.state} only %}</span>
                 </div>
-            {% else %}<p>Aucune tâche planifiée.</p>{% endfor %}
+            {% else %}
+                <div class="rtn-empty">
+                    <span class="rtn-empty-icon" aria-hidden="true">{{ icon('clipboard-list', 40) }}</span>
+                    <p>Aucune tâche planifiée pour ce site.</p>
+                </div>
+            {% endfor %}
         </div>
     </section>
 </main>

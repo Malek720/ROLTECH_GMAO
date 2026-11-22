@@ -1,44 +1,69 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Notifications{% endblock %}
+{% block title %}Notifications — RolTech GMAO{% endblock %}
 
-{% block body %}
+{% block shell_body %}
 <main class="rtn-page">
-    <nav class="rtn-nav">
-        <a href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
-        <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
-    </nav>
-    <section class="rtn-card">
-        <div class="rtn-page-heading">
-            <h1>Notifications</h1>
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Centre d'alertes</p>
+            <h1 class="rtn-page-title">
+                {{ icon('bell', 28) }}
+                Notifications
+            </h1>
+            <p class="rtn-page-desc">Alertes de pannes, assignations d'interventions et rappels de maintenance.</p>
+        </div>
+        <div class="rtn-actions">
             {% if notifications|filter(notification => notification.readAt is null) is not empty %}
                 <form method="post" action="{{ path('notifications_read_all') }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('notifications_read_all') }}">
-                    <button class="rtn-button rtn-button-large" type="submit">Tout marquer comme lu</button>
+                    <button class="rtn-btn rtn-btn-secondary rtn-btn-sm rtn-button rtn-button-large" type="submit">
+                        {{ icon('shield-check', 18) }}
+                        Tout marquer comme lu
+                    </button>
                 </form>
             {% endif %}
         </div>
+    </header>
+
+    <section class="rtn-card">
+        <div class="rtn-card-header">
+            <h2 class="rtn-card-title">
+                {{ icon('bell', 20) }}
+                Vos notifications
+            </h2>
+        </div>
         {% if notifications is empty %}
-            <p>Aucune notification.</p>
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('bell', 40) }}</span>
+                <p>Aucune notification.</p>
+            </div>
         {% else %}
-            {% for notification in notifications %}
-                <article class="rtn-notification {% if notification.readAt is null %}rtn-notification-unread{% endif %}">
-                    <strong>{{ notification.type|capitalize }}</strong>
-                    <p>{{ notification.message }}</p>
-                    <small>{{ notification.createdAt|date('d/m/Y H:i') }}</small>
-                    {% if notification.intervention %}
-                        <a class="rtn-touch-link" href="{{ path('intervention_show', {id: notification.intervention.id}) }}" data-turbo="false">Ouvrir l’intervention</a>
-                    {% elseif notification.fault %}
-                        <a class="rtn-touch-link" href="{{ path('fault_confirmation', {id: notification.fault.id}) }}" data-turbo="false">Ouvrir la panne</a>
-                    {% endif %}
-                    {% if notification.readAt is null %}
-                        <form method="post" action="{{ path('notification_read', {id: notification.id}) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('notification_read_' ~ notification.id) }}">
-                            <button type="submit">Marquer comme lue</button>
-                        </form>
-                    {% endif %}
-                </article>
-            {% endfor %}
+            <div class="rtn-notifications-list" style="display:flex;flex-direction:column;gap:12px;">
+                {% for notification in notifications %}
+                    <article class="rtn-notification {% if notification.readAt is null %}rtn-notification-unread{% endif %}" style="padding:14px;border:1px solid var(--rtn-border);border-radius:var(--rtn-radius-md);background:var(--rtn-bg-surface);display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong>{{ notification.type|capitalize }}</strong>
+                            <small style="color:var(--rtn-text-muted);">{{ notification.createdAt|date('d/m/Y H:i') }}</small>
+                        </div>
+                        <p style="margin:0;color:var(--rtn-text);">{{ notification.message }}</p>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+                            {% if notification.intervention %}
+                                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm rtn-touch-link" href="{{ path('intervention_show', {id: notification.intervention.id}) }}" data-turbo="false">Ouvrir l’intervention</a>
+                            {% elseif notification.fault %}
+                                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm rtn-touch-link" href="{{ path('fault_confirmation', {id: notification.fault.id}) }}" data-turbo="false">Ouvrir la panne</a>
+                            {% endif %}
+                            {% if notification.readAt is null %}
+                                <form method="post" action="{{ path('notification_read', {id: notification.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('notification_read_' ~ notification.id) }}">
+                                    <button class="rtn-btn rtn-btn-ghost rtn-btn-sm" type="submit">Marquer comme lue</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
         {% endif %}
     </section>
 </main>

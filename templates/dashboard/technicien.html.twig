@@ -1,54 +1,159 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Espace Technicien{% endblock %}
+{% block title %}Tableau de bord Technicien{% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
     {{ importmap('map') }}
 {% endblock %}
 
-{% block body %}
-<main class="rtn-dashboard">
-    <header class="rtn-dashboard-header">
-        <div><p class="rtn-eyebrow">RolTech GMAO</p><h1>Espace Technicien</h1></div>
-        <nav class="rtn-dashboard-actions">
-            <a class="rtn-button rtn-button-large" href="{{ path('map_index') }}" data-turbo="false">Carte des sites</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('machine_list') }}" data-turbo="false">Parc machines</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('interventions_mine') }}" data-turbo="false">Mes interventions</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('faults_mine') }}" data-turbo="false">Mes pannes</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('fault_new') }}" data-turbo="false">Déclarer une panne</a>
-            <a class="rtn-button rtn-button-large" href="{{ path('notifications') }}" data-turbo="false">Notifications</a>
-            <a href="{{ path('app_logout') }}" data-turbo="false">Se déconnecter</a>
-        </nav>
+{% block shell_body %}
+<main class="rtn-page rtn-page--dashboard">
+
+    {# ── Page header ───────────────────────────────────────── #}
+    <header class="rtn-page-header">
+        <div>
+            <p class="rtn-eyebrow">Espace Technicien</p>
+            <h1 class="rtn-page-title">
+                Bonjour, {{ app.user.email|split('@')|first }} 👋
+            </h1>
+        </div>
+        <a class="rtn-btn rtn-btn-primary rtn-btn-cta"
+           href="{{ path('fault_new') }}"
+           data-turbo="false">
+            {{ icon('plus-circle', 20) }}
+            Déclarer une panne
+        </a>
     </header>
-    <section class="rtn-dashboard-grid">
-        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('interventions_mine', {status: 'planifiee'}) }}" data-turbo="false"><strong>À démarrer</strong><span>{{ interventions|filter(i => i.status == 'planifiee')|length }}</span><small>Voir les interventions planifiées</small></a>
-        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('interventions_mine', {status: 'en cours'}) }}" data-turbo="false"><strong>En cours</strong><span>{{ interventions|filter(i => i.status == 'en cours')|length }}</span><small>Reprendre une intervention</small></a>
-        <a class="rtn-dashboard-card rtn-action-card" href="{{ path('fault_new') }}" data-turbo="false"><strong>Nouvelle panne</strong><span>+</span><small>Déclarer un incident</small></a>
+
+    {# ── Stat cards (staggered animation via JS) ──────────── #}
+    <section class="rtn-stat-grid" aria-label="Résumé">
+        {% set count_planifiee = interventions|filter(i => i.status == 'planifiee')|length %}
+        <a class="rtn-stat-card rtn-stat-card--link"
+           href="{{ path('interventions_mine', {status: 'planifiee'}) }}"
+           data-turbo="false"
+           aria-label="{{ count_planifiee }} intervention(s) à démarrer">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('clipboard-list', 24) }}</span>
+            <strong class="rtn-stat-number">{{ count_planifiee }}</strong>
+            <span class="rtn-stat-label">À démarrer</span>
+            <small class="rtn-stat-hint">Interventions planifiées</small>
+        </a>
+
+        {% set count_en_cours = interventions|filter(i => i.status == 'en cours')|length %}
+        <a class="rtn-stat-card rtn-stat-card--link"
+           href="{{ path('interventions_mine', {status: 'en cours'}) }}"
+           data-turbo="false"
+           aria-label="{{ count_en_cours }} intervention(s) en cours">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('wrench', 24) }}</span>
+            <strong class="rtn-stat-number rtn-stat-number--accent">{{ count_en_cours }}</strong>
+            <span class="rtn-stat-label">En cours</span>
+            <small class="rtn-stat-hint">Reprendre une intervention</small>
+        </a>
+
+        {% set count_unread = notifications|filter(n => n.readAt is null)|length %}
+        <a class="rtn-stat-card rtn-stat-card--link"
+           href="{{ path('notifications') }}"
+           data-turbo="false"
+           aria-label="{{ count_unread }} notification(s) non lue(s)">
+            <span class="rtn-stat-icon" aria-hidden="true">{{ icon('bell', 24) }}</span>
+            <strong class="rtn-stat-number">{{ count_unread }}</strong>
+            <span class="rtn-stat-label">Non lues</span>
+            <small class="rtn-stat-hint">Mes notifications</small>
+        </a>
     </section>
-    {{ render(controller('App\\Controller\\MapController::card')) }}
-    <section class="rtn-dashboard-card">
-        <h2>Mes interventions</h2>
-        {% for intervention in interventions %}
-            <article class="rtn-dashboard-item">
-                <div>
-                    <strong>{{ intervention.type|capitalize }} — {{ intervention.fault ? intervention.fault.machine : intervention.schedule.machine }}</strong>
-                    <span>{{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}</span>
-                </div>
-                <a class="rtn-touch-link" href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">{% include 'components/status_badge.html.twig' with {status: intervention.status} only %}</a>
-            </article>
-        {% else %}<p>Aucune intervention affectée.</p>{% endfor %}
-        <a class="rtn-dashboard-link" href="{{ path('interventions_mine') }}" data-turbo="false">Voir toutes mes interventions</a>
+
+    {# ── Mes interventions ─────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section" aria-labelledby="rtn-interventions-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-interventions-heading" class="rtn-card-title">
+                {{ icon('wrench', 20) }}
+                Mes interventions
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('interventions_mine') }}"
+               data-turbo="false">
+                Voir tout {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {% if interventions is empty %}
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('wrench', 40) }}</span>
+                <p>Aucune intervention affectée pour le moment.</p>
+            </div>
+        {% else %}
+            <ul class="rtn-item-list" role="list">
+                {% for intervention in interventions %}
+                <li class="rtn-item">
+                    <div class="rtn-item-body">
+                        <strong class="rtn-item-title">
+                            {{ intervention.type|capitalize }}
+                            — {{ intervention.fault ? intervention.fault.machine : intervention.schedule.machine }}
+                        </strong>
+                        <span class="rtn-item-desc">
+                            {{ intervention.fault ? intervention.fault.description : intervention.schedule.task.action }}
+                        </span>
+                    </div>
+                    <a class="rtn-item-action"
+                       href="{{ path('intervention_show', {id: intervention.id}) }}"
+                       data-turbo="false"
+                       aria-label="Voir l'intervention">
+                        {% include 'components/status_badge.html.twig' with {status: intervention.status} only %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </section>
-    <section class="rtn-dashboard-card">
-        <h2>Mes notifications</h2>
-        {% for notification in notifications|slice(0, 6) %}
-            <article class="rtn-dashboard-item {% if notification.readAt is null %}rtn-unread{% endif %}">
-                <div><strong>{{ notification.type|capitalize }}</strong><span>{{ notification.message }}</span></div>
-                <small>{{ notification.createdAt|date('d/m/Y H:i') }}</small>
-            </article>
-        {% else %}<p>Aucune notification.</p>{% endfor %}
-        <a class="rtn-dashboard-link" href="{{ path('notifications') }}" data-turbo="false">Voir toutes les notifications</a>
+
+    {# ── Carte compacte ────────────────────────────────────── #}
+    <section class="rtn-card rtn-card--section rtn-card--map" aria-labelledby="rtn-map-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-map-heading" class="rtn-card-title">
+                {{ icon('map', 20) }}
+                Carte des sites
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('map_index') }}"
+               data-turbo="false">
+                Ouvrir {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {{ render(controller('App\\Controller\\MapController::card')) }}
     </section>
+
+    {# ── Notifications récentes ────────────────────────────── #}
+    <section class="rtn-card rtn-card--section" aria-labelledby="rtn-notif-heading">
+        <div class="rtn-card-header">
+            <h2 id="rtn-notif-heading" class="rtn-card-title">
+                {{ icon('bell', 20) }}
+                Notifications récentes
+            </h2>
+            <a class="rtn-btn rtn-btn-ghost rtn-btn-sm"
+               href="{{ path('notifications') }}"
+               data-turbo="false">
+                Voir tout {{ icon('chevron-right', 16) }}
+            </a>
+        </div>
+        {% if notifications is empty %}
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('bell', 40) }}</span>
+                <p>Aucune notification.</p>
+            </div>
+        {% else %}
+            <ul class="rtn-item-list" role="list">
+                {% for notification in notifications|slice(0, 6) %}
+                <li class="rtn-item{% if notification.readAt is null %} rtn-item--unread{% endif %}">
+                    <div class="rtn-item-body">
+                        <strong class="rtn-item-title">{{ notification.type|capitalize }}</strong>
+                        <span class="rtn-item-desc">{{ notification.message }}</span>
+                    </div>
+                    <small class="rtn-item-meta">{{ notification.createdAt|date('d/m H:i') }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
 </main>
-{% endblock %}
+{% endblock shell_body %}
