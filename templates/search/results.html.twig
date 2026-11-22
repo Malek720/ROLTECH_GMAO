@@ -1,48 +1,52 @@
-{% extends 'base.html.twig' %}
+{% extends 'shell.html.twig' %}
+{% from '_partials/icons.html.twig' import icon %}
 
-{% block title %}Recherche{% endblock %}
+{% block title %}Recherche — RolTech GMAO{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-        .rtn-search-summary{margin:8px 0 0;color:#d8dee9}
-        .rtn-search-list{display:grid;gap:10px;margin:14px 0 0;padding:0;list-style:none}
-        .rtn-search-item{display:grid;gap:6px;padding:16px;border:1px solid #4c566a;border-radius:10px;background:#1b2435;color:#eceff4}
-        .rtn-search-item strong{color:#eceff4;font-size:1.05rem}
-        .rtn-search-item small{color:#d8dee9}
-        .rtn-search-badges{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
-        .rtn-search-empty{margin:14px 0 0;color:#9aa7ba}
-        .rtn-search-hint{margin:6px 0 0;color:#ebcb8b}
-    </style>
-{% endblock %}
-
-{% block body %}
+{% block shell_body %}
 {% set backRoute = is_granted('ROLE_RESPONSABLE') ? 'responsable_dashboard' : 'technicien_dashboard' %}
 <main class="rtn-page">
-    <header class="rtn-page-heading">
+    <header class="rtn-page-header">
         <div>
-            <p class="rtn-eyebrow">RolTech GMAO</p>
-            <h1>Recherche</h1>
+            <p class="rtn-eyebrow">Recherche globale</p>
+            <h1 class="rtn-page-title">
+                {{ icon('search', 28) }}
+                Recherche
+            </h1>
             {% if term == '' or tooShort %}
-                <p class="rtn-search-summary">Recherchez une machine par nom, numéro de série ou modèle, ou une intervention par numéro.</p>
+                <p class="rtn-page-desc rtn-search-summary">Recherchez une machine par nom, numéro de série ou modèle, ou une intervention par numéro.</p>
             {% else %}
-                <p class="rtn-search-summary">Résultat pour « {{ term }} ».</p>
+                <p class="rtn-page-desc rtn-search-summary">Résultat pour « {{ term }} ».</p>
             {% endif %}
         </div>
-        <nav class="rtn-dashboard-actions">
-            <a class="rtn-button rtn-button-large" href="{{ path(backRoute) }}" data-turbo="false">Retour</a>
-        </nav>
+        <div class="rtn-actions">
+            <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path(backRoute) }}" data-turbo="false">
+                {{ icon('layout-dashboard', 18) }}
+                Tableau de bord
+            </a>
+        </div>
     </header>
 
     {% if term == '' or tooShort %}
         <section class="rtn-card">
-            <p class="rtn-search-hint">Saisissez au moins 2 caractères pour lancer la recherche.</p>
+            <div class="rtn-empty">
+                <span class="rtn-empty-icon" aria-hidden="true">{{ icon('search', 40) }}</span>
+                <p class="rtn-search-hint">Saisissez au moins 2 caractères pour lancer la recherche.</p>
+            </div>
         </section>
     {% else %}
         <section class="rtn-card">
-            <h2>Machines</h2>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('boxes', 20) }}
+                    Machines
+                </h2>
+            </div>
             {% if machines is empty %}
-                <p class="rtn-search-empty">Aucun résultat.</p>
+                <div class="rtn-empty">
+                    <span class="rtn-empty-icon" aria-hidden="true">{{ icon('boxes', 40) }}</span>
+                    <p class="rtn-search-empty">Aucun résultat.</p>
+                </div>
             {% else %}
                 <ul class="rtn-search-list">
                     {% for machine in machines %}
@@ -55,11 +59,13 @@
                                 {% include 'components/status_badge.html.twig' with {status: machine.status} only %}
                                 {% include 'components/status_badge.html.twig' with {status: machine.machineModel.dataStatus} only %}
                             </div>
-                            {% if is_granted('ROLE_RESPONSABLE') %}
-                                <a href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Ouvrir la fiche</a>
-                            {% else %}
-                                <a href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Déclarer une panne</a>
-                            {% endif %}
+                            <div style="margin-top:8px;">
+                                {% if is_granted('ROLE_RESPONSABLE') %}
+                                    <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('machine_fiche', {id: machine.id}) }}" data-turbo="false">Ouvrir la fiche</a>
+                                {% else %}
+                                    <a class="rtn-btn rtn-btn-primary rtn-btn-sm" href="{{ path('fault_new', {machine: machine.id}) }}" data-turbo="false">Déclarer une panne</a>
+                                {% endif %}
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
@@ -67,9 +73,17 @@
         </section>
 
         <section class="rtn-card">
-            <h2>Interventions</h2>
+            <div class="rtn-card-header">
+                <h2 class="rtn-card-title">
+                    {{ icon('wrench', 20) }}
+                    Interventions
+                </h2>
+            </div>
             {% if interventions is empty %}
-                <p class="rtn-search-empty">Aucun résultat.</p>
+                <div class="rtn-empty">
+                    <span class="rtn-empty-icon" aria-hidden="true">{{ icon('wrench', 40) }}</span>
+                    <p class="rtn-search-empty">Aucun résultat.</p>
+                </div>
             {% else %}
                 <ul class="rtn-search-list">
                     {% for intervention in interventions %}
@@ -82,7 +96,9 @@
                                 {% include 'components/status_badge.html.twig' with {status: intervention.type} only %}
                                 {% include 'components/status_badge.html.twig' with {status: intervention.status} only %}
                             </div>
-                            <a href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">Ouvrir l'intervention</a>
+                            <div style="margin-top:8px;">
+                                <a class="rtn-btn rtn-btn-secondary rtn-btn-sm" href="{{ path('intervention_show', {id: intervention.id}) }}" data-turbo="false">Ouvrir l'intervention</a>
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
