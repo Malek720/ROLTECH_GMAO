@@ -387,3 +387,35 @@ No new template variables needed. The dashboards use only variables already pass
 - `prefers-reduced-motion` suppresses all animations.
 - Turbo navigation: active state re-syncs without page reload.
 - `inert` attribute fully suppresses background tab stops while drawer is open.
+
+
+---
+
+## Phase 9b — Step 9b.4: Remaining Workflows & Design System Refactoring
+
+### Files modified
+
+| File | Changes |
+|---|---|
+| `assets/styles/rtn-ui.css` | Added shared CSS for zones, site cards, responsive parc filters/tables, map wrapper/legend, KPI tables/charts, search items, machine fiche QR/modules/timeline, large touch targets (≥48px) for checklist and lockout rows. Responsive table and plan table become stacked cards at ≤640px. |
+| `templates/maintenance/plan.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, site filter card, responsive plan table with stacked card variant at ≤640px (no horizontal scroll at 375px), status badges with icons, empty state. |
+| `templates/site/show.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action buttons, zone sections with machine cards, removed inline style block, preserved `data-machine-id` and breadcrumbs. |
+| `templates/machine/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, collapsible filter card, responsive machine table with stacked card variant at ≤640px, status badges, preserved `data-machine-id` and breadcrumbs. |
+| `templates/map/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, map legend card, preserved `#rtn-map` (600px height), `data-sites`, `data-geojson-url` and breadcrumbs. |
+| `templates/kpi/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with CSV export action, date filter card, tables as primary reference, chart cards around `#rtn-kpi-charts-root`, preserved `#rtn-kpi-data`. |
+| `templates/search/results.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, machine and intervention results cards, status badges, empty states, preserved `data-machine-id` and `data-intervention-id`. |
+| `templates/machine/fiche.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action buttons, identity card, QR block preserving `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url` and print stylesheet, module cards, 3D viewer section, timeline preserving `ol.rtn-timeline`. |
+| `templates/fault/new.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, form with `rtn-field`, preserved collapsible 3D viewer, CSRF, submission token, dropdown IDs/names, and JavaScript bindings. |
+| `templates/fault/confirmation.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, detail list with status badges, preserved `#intervention` hook. |
+| `templates/fault/mine.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, item list with status badges, empty state with icon. |
+| `templates/fault/intervention.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, detail list with status badges, safety banner. |
+| `templates/notification/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, notification list with unread state & action buttons, empty state with icon. |
+| `templates/intervention/show.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, safety banner, large touch targets (≥48px) for lockout checkboxes and procedure steps, clear primary buttons. |
+| `templates/intervention/index.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, filter nav, card list with status badges, touch targets ≥48px, empty state with icon. |
+| `templates/responsable/dispatch.html.twig` | Extends `shell.html.twig`, `rtn-page-header` with action group, dispatch cards with status badges and technician dropdowns, empty state with icon. |
+| `templates/responsable/manual_intervention.html.twig` | Extends `shell.html.twig`, `rtn-page-header`, card layout, form with `rtn-field` grid, primary submit button. |
+
+### Verification & Safety
+- Templates linted: `php bin/console lint:twig templates` (All 39 Twig files valid).
+- PHPUnit test suite: **132 tests, 593 assertions, 0 failures, 0 errors** (65 functional, 67 unit).
+- Unchanged functional hooks: `#rtn-bell`, `.rtn-toasts[aria-live="polite"]`, `#rtn-map`, `[data-rtn-viewer]`, `#rtn-kpi-data`, `#rtn-kpi-charts-root`, `.rtn-qr`, `.rtn-qr-code`, `.rtn-qr-url`, `#rtn-fault-viewer-collapsible`, `ol.rtn-timeline`, `input[name="fault[_token]"]`, form field names `fault[*]`, print stylesheet hiding viewer and printing QR.
