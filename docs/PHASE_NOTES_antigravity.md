@@ -282,3 +282,49 @@ Suite is idempotent. The 1 deprecation is pre-existing (not from phase 7).
   - Move shared CSS from inline `<style>` blocks into `rtn-ui.css`.
   - Make `.rtn-plan-table` responsive (stacked cards at <= 640px).
   - Standardize header actions into clean `.rtn-actions` flex groups.
+
+
+---
+
+## Phase 9b — Step 9b.2: Design Foundation
+
+### 1. Icon Library Attribution & Licenses
+- **Lucide Icons**: ISC License, Copyright (c) Lucide Contributors.
+- **Feather Icons** (upstream portion): MIT License, Copyright (c) 2013-2022 Cole Bemis.
+- Icons macro implemented in `templates/_partials/icons.html.twig`: `icon(name, size = 20, class = '')` returning inline SVG (`aria-hidden="true"`, `focusable="false"`, `stroke="currentColor"`, `fill="none"`).
+
+### 2. Contrast Validation (`tools/check-contrast.mjs`)
+- **Initial Run Failure**:
+  - `Card border on canvas`: `#3b465c` (`--rtn-border`) on `#020817` (`--rtn-bg-canvas`) yielded **2.11:1** (< 3.0:1 required for UI boundaries).
+- **Resolution**:
+  - Adjusted `--rtn-border` to `#566580` (cool Nord slate boundary) yielding **3.40:1** (PASS).
+  - Primary button label text uses `#020817` on `#88c0d0` yielding **10.00:1** (PASS).
+  - Danger status / badges use `--rtn-status-echue-text: #ffb4ab` on `#252d3e` yielding **8.12:1** (PASS) while preserving brand `--rtn-status-echue: #bf616a` for borders and icons.
+
+#### Final Contrast Ratios (All 19 Pairs Pass)
+| Pair Name | FG Token | BG Token | Ratio | Required | Result |
+|---|---|---|---|---|---|
+| Body text on canvas | `#eceff4` | `#020817` | **17.36:1** | >= 4.5:1 | PASS |
+| Body text on card | `#eceff4` | `#252d3e` | **11.96:1** | >= 4.5:1 | PASS |
+| Muted text on card | `#d8dee9` | `#252d3e` | **10.20:1** | >= 4.5:1 | PASS |
+| Link on card | `#88c0d0` | `#252d3e` | **6.89:1** | >= 4.5:1 | PASS |
+| Button primary label | `#020817` | `#88c0d0` | **10.00:1** | >= 4.5:1 | PASS |
+| Button secondary label | `#eceff4` | `#3b465c` | **8.22:1** | >= 4.5:1 | PASS |
+| Button ghost label on card | `#eceff4` | `#252d3e` | **11.96:1** | >= 4.5:1 | PASS |
+| Button danger label | `#020817` | `#bf616a` | **4.89:1** | >= 4.5:1 | PASS |
+| Badge OK text | `#a3be8c` | `#1e3328` | **6.61:1** | >= 4.5:1 | PASS |
+| Badge Proche text | `#d08770` | `#382822` | **4.94:1** | >= 4.5:1 | PASS |
+| Badge Echue text | `#ffb4ab` | `#3c1e24` | **8.81:1** | >= 4.5:1 | PASS |
+| Badge Warning text | `#ebcb8b` | `#3d331f` | **7.95:1** | >= 4.5:1 | PASS |
+| Status OK text on card | `#a3be8c` | `#252d3e` | **6.76:1** | >= 4.5:1 | PASS |
+| Status Proche text on card | `#d08770` | `#252d3e` | **4.84:1** | >= 4.5:1 | PASS |
+| Status Echue text on card | `#ffb4ab` | `#252d3e` | **8.12:1** | >= 4.5:1 | PASS |
+| Status Warning text on card | `#ebcb8b` | `#252d3e` | **8.83:1** | >= 4.5:1 | PASS |
+| Focus ring on card background | `#88c0d0` | `#252d3e` | **6.89:1** | >= 3.0:1 | PASS |
+| Focus ring on canvas | `#88c0d0` | `#020817` | **10.00:1** | >= 3.0:1 | PASS |
+| Card border on canvas | `#566580` | `#020817` | **3.40:1** | >= 3.0:1 | PASS |
+
+### 3. Verification & Safety
+- Templates linted: 37 files valid.
+- Functional test suite: 24 tests, 254 assertions, 0 failures, 0 errors.
+- Unchanged functional hooks: toast markup (`aria-live="polite"`), `#rtn-bell` intact, no database modifications.
