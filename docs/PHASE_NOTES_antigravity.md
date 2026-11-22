@@ -328,3 +328,62 @@ Suite is idempotent. The 1 deprecation is pre-existing (not from phase 7).
 - Templates linted: 37 files valid.
 - Functional test suite: 24 tests, 254 assertions, 0 failures, 0 errors.
 - Unchanged functional hooks: toast markup (`aria-live="polite"`), `#rtn-bell` intact, no database modifications.
+
+
+---
+
+## Phase 9b — Step 9b.3: App Shell, Navigation & Dashboards
+
+### Files created / modified
+
+| File | Action |
+|---|---|
+| `templates/_partials/nav.html.twig` | **Created** — responsive nav partial |
+| `templates/shell.html.twig` | **Created** — intermediate layout wrapping content in sidebar+topbar shell |
+| `assets/ui.js` | **Created** — vanilla JS: drawer, focus trap, inert, active-state sync, stagger, toast dismiss |
+| `assets/styles/rtn-ui.css` | **Extended** — shell layout, sidebar, topbar, stat cards, item list, drawers, tab bar, chips, motion rules |
+| `templates/base.html.twig` | **Modified** — loads `ui.js` as plain `<script defer>` via `asset()` (rule 5); removed old fixed `.rtn-bell` div and standalone global_search include; kept single `{% block body %}` |
+| `templates/dashboard/technicien.html.twig` | **Rewritten** — extends `shell.html.twig`; greeting header, 3 stat cards, interventions list, map card, notifications |
+| `templates/dashboard/responsable.html.twig` | **Rewritten** — extends `shell.html.twig`; stat cards, status chips, KPI link card, dispatch/maintenance tables (phone: stacked cards), map card |
+
+### Architecture decision: `shell.html.twig`
+
+Twig does not allow the same `{% block %}` name to appear twice in a single base template, even inside `{% if %}` branches. EasyAdmin uses its own base layout and never touches `base.html.twig`. The correct solution is an intermediate `shell.html.twig` that extends `base.html.twig` and declares a `{% block shell_body %}` inside its `{% block body %}`. All non-admin templates now extend `shell.html.twig`; admin templates continue to use EasyAdmin's own base.
+
+### Hooks preserved
+
+- `#rtn-bell`: moved from `position: fixed` div into sidebar footer (desktop) and topbar (tablet) and tab bar / drawer (phone). Same id, same `notification_count()` data source, no extra query.
+- `.rtn-toasts[aria-live="polite"]`: rendered in `base.html.twig` body block, below the shell, unchanged.
+- `#rtn-map`, `data-rtn-viewer`, all `data-*` attributes: untouched — only dashboard wrappers changed.
+- `data-turbo="false"` on all navigation links.
+- Breadcrumb and global search partials: included inside `nav.html.twig` topbar (search) and available for `{% block topbar_breadcrumb %}` extension.
+- Print stylesheets: viewer hidden, QR printed — untouched.
+
+### JS details
+
+- `ui.js` is a plain IIFE loaded with `asset('ui.js') defer`, not an importmap entry (rule 5).
+- All listeners registered synchronously via `attachGlobalListeners()` (rule 7).
+- `turbo:load` re-syncs active nav state and re-runs stat-card animation.
+- `turbo:before-cache` closes the drawer, releases `inert`, strips animation classes from cached snapshot.
+- `_listenersAttached` guard prevents duplicate listeners across Turbo visits.
+- Focus trap inside drawer handles `Tab`/`Shift+Tab`. Escape closes drawer and returns focus to trigger button.
+
+### Variables assumed available in nav.html.twig
+
+`notification_count()` Twig function (global, pre-existing — no new query).
+
+### Variables not available (noted for phase 9b.4)
+
+No new template variables needed. The dashboards use only variables already passed by their controllers (`interventions`, `notifications`, `faultsToDispatch`, `overdueSchedules`, `machines`, `machineCounts`, `site`).
+
+### What cannot be checked without a browser
+
+- Sidebar sticky behavior and scroll at 1280 px.
+- Icon rail tooltip on hover/focus at 768 px.
+- Bottom tab bar touch targets (44 px) at 375 px.
+- Drawer slide-in animation and focus management.
+- Stat card stagger animation (50 ms steps).
+- Active indicator slide-in CSS animation.
+- `prefers-reduced-motion` suppresses all animations.
+- Turbo navigation: active state re-syncs without page reload.
+- `inert` attribute fully suppresses background tab stops while drawer is open.

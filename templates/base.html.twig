@@ -2,12 +2,12 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}RolTech GMAO{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
             <link rel="stylesheet" href="{{ asset('styles/rtn-ui.css') }}">
             <style>
-                .rtn-bell{position:fixed;top:0;right:0;z-index:10;padding:8px 18px;background:#88c0d0;border-radius:0 0 0 8px;box-shadow:0 4px 14px #0006}.rtn-bell a{color:#020817;text-decoration:none}
                 .rtn-dashboard-item{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #3b465c}.rtn-dashboard-item:last-child{border-bottom:0}.rtn-dashboard-item div{display:grid;gap:4px}.rtn-dashboard-item span{color:#d8dee9}
                 .rtn-status-grid{display:flex;gap:16px;flex-wrap:wrap}.rtn-status-grid div{display:grid;gap:3px;padding:14px 20px;background:#3b465c;border-radius:10px}.rtn-status-grid strong{font-size:1.6rem;color:#88c0d0}
                 .rtn-form{display:grid;gap:20px}.rtn-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}.rtn-form-field-full{grid-column:1/-1}.rtn-form-help{margin:0;color:#d8dee9;font-size:.92rem}
@@ -21,6 +21,11 @@
             {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
 
+        {# ui.js: plain asset, registered immediately (rule 5 & 7) #}
+        {% if app.user and not (app.request.pathInfo starts with '/admin') %}
+        <script src="{{ asset('ui.js') }}" defer></script>
+        {% endif %}
+
         {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
         {% if frankenphp_hot_reload %}
         <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
@@ -29,13 +34,9 @@
         {% endif %}
     </head>
     <body>
-        {% if app.user %}
-            <div class="rtn-bell">
-                <a href="{{ path('notifications') }}" data-turbo="false">🔔 Notifications ({{ notification_count() }})</a>
-            </div>
-            {% include '_partials/global_search.html.twig' %}
-        {% endif %}
         {% block body %}{% endblock %}
+
+        {# Flash toasts — rendered only here (rule 21), aria-live preserved #}
         {% set flash_messages = app.flashes %}
         {% if flash_messages is not empty %}
             <div class="rtn-toasts" aria-live="polite">

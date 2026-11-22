@@ -1,0 +1,295 @@
+{#
+  _partials/nav.html.twig — App Shell Navigation (Step 9b.3)
+  Desktop ≥1100px : left sidebar
+  Tablet 640–1100px : icon rail
+  Phone <640px technicien : bottom tab bar + drawer
+  Phone <640px responsable : top hamburger bar + drawer
+  Hooks preserved: #rtn-bell, notification_count(), global_search partial, breadcrumb partial
+#}
+{% from '_partials/icons.html.twig' import icon %}
+
+{# Determine active route for aria-current #}
+{% set current_route = app.request.attributes.get('_route') %}
+
+{# Role detection #}
+{% set is_tech  = is_granted('ROLE_TECHNICIEN') and not is_granted('ROLE_RESPONSABLE') and not is_granted('ROLE_ADMIN') %}
+{% set is_resp  = is_granted('ROLE_RESPONSABLE') and not is_granted('ROLE_ADMIN') %}
+{% set is_admin = is_granted('ROLE_ADMIN') %}
+
+{# Navigation items per role #}
+{% if is_resp or is_admin %}
+  {% set nav_items = [
+    { route: 'responsable_dashboard', label: 'Tableau de bord', icon: 'layout-dashboard' },
+    { route: 'map_index',             label: 'Carte',           icon: 'map' },
+    { route: 'machine_list',          label: 'Parc machines',   icon: 'boxes' },
+    { route: 'responsable_dispatch',  label: 'Dispatch',        icon: 'git-pull-request' },
+    { route: 'maintenance_plan',      label: 'Plan maintenance', icon: 'clipboard-list' },
+    { route: 'kpi_index',             label: 'Indicateurs KPI', icon: 'bar-chart-3' },
+    { route: 'fault_new',             label: 'Déclarer panne',  icon: 'alert-triangle' },
+    { route: 'notifications',         label: 'Notifications',   icon: 'bell' },
+  ] %}
+{% else %}
+  {% set nav_items = [
+    { route: 'technicien_dashboard', label: 'Tableau de bord',    icon: 'layout-dashboard' },
+    { route: 'interventions_mine',   label: 'Mes interventions',   icon: 'wrench' },
+    { route: 'fault_new',            label: 'Déclarer une panne',  icon: 'alert-triangle' },
+    { route: 'map_index',            label: 'Carte',               icon: 'map' },
+    { route: 'notifications',        label: 'Notifications',       icon: 'bell' },
+    { route: 'faults_mine',          label: 'Mes pannes',          icon: 'alert-triangle' },
+    { route: 'machine_list',         label: 'Parc machines',       icon: 'boxes' },
+  ] %}
+{% endif %}
+
+{# Tab bar items for technicien mobile (first 5) #}
+{% set tab_items = nav_items|slice(0, 5) %}
+{# Drawer extra items for technicien mobile (remaining) #}
+{% set drawer_extra = nav_items|slice(5) %}
+
+{# Unread count — same source as before, no extra query #}
+{% set notif_count = notification_count() %}
+
+{# ======================================================
+   SKIP LINK (rendered once here, before sidebar markup)
+   ====================================================== #}
+<a href="#rtn-main-content" class="rtn-skip-link">Aller au contenu</a>
+
+{# ======================================================
+   LEFT SIDEBAR (desktop ≥1100px) + ICON RAIL (640-1100px)
+   ====================================================== #}
+<nav class="rtn-sidebar" aria-label="Navigation principale">
+  {# Brand #}
+  <div class="rtn-sidebar-brand" aria-hidden="true">
+    <span class="rtn-sidebar-brand-mark">RT</span>
+    <span class="rtn-sidebar-brand-title">RolTech GMAO</span>
+  </div>
+
+  {# Menu items #}
+  <ul class="rtn-sidebar-menu" role="list">
+    {% for item in nav_items %}
+      {% set is_active = (current_route == item.route) %}
+      <li class="rtn-sidebar-item{% if is_active %} rtn-sidebar-item--active{% endif %}">
+        <a href="{{ path(item.route) }}"
+           class="rtn-sidebar-link"
+           {% if is_active %}aria-current="page"{% endif %}
+           aria-label="{{ item.label }}"
+           title="{{ item.label }}"
+           data-turbo="false">
+          <span class="rtn-sidebar-icon">
+            {{ icon(item.icon, 20) }}
+            {% if item.route == 'notifications' and notif_count > 0 %}
+              <span class="rtn-sidebar-badge" aria-label="{{ notif_count }} notifications non lues">{{ notif_count }}</span>
+            {% endif %}
+          </span>
+          <span class="rtn-sidebar-label">{{ item.label }}</span>
+          {% if is_active %}<span class="rtn-sidebar-indicator" aria-hidden="true"></span>{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {# Sidebar footer — user block + logout #}
+  <div class="rtn-sidebar-footer">
+    {% if is_admin %}
+      <a href="{{ path('admin') }}" class="rtn-sidebar-admin-link" title="Administration" aria-label="Administration" data-turbo="false">
+        {{ icon('shield-check', 18) }}
+        <span class="rtn-sidebar-label">Administration</span>
+        {{ icon('external-link', 14, 'rtn-sidebar-external') }}
+      </a>
+    {% endif %}
+    <div class="rtn-sidebar-user">
+      <span class="rtn-sidebar-user-name rtn-sidebar-label">{{ app.user.email|split('@')|first }}</span>
+      <span class="rtn-sidebar-user-role rtn-sidebar-label">
+        {% if is_admin %}Admin{% elseif is_resp %}Responsable{% else %}Technicien{% endif %}
+      </span>
+    </div>
+    <a href="{{ path('app_logout') }}"
+       class="rtn-sidebar-logout"
+       title="Se déconnecter"
+       aria-label="Se déconnecter"
+       data-turbo="false">
+      {{ icon('log-out', 20) }}
+      <span class="rtn-sidebar-label">Déconnexion</span>
+    </a>
+  </div>
+</nav>
+
+{# ======================================================
+   TOPBAR (desktop/tablet) — breadcrumb + search + bell + user
+   ====================================================== #}
+<header class="rtn-topbar" role="banner">
+  <div class="rtn-topbar-breadcrumb">
+    {% block topbar_breadcrumb %}{% endblock %}
+  </div>
+  <div class="rtn-topbar-search">
+    {% include '_partials/global_search.html.twig' %}
+  </div>
+  <div class="rtn-topbar-tools">
+    {# Notification bell — same id, same data source, moved from fixed position #}
+    <a id="rtn-bell"
+       href="{{ path('notifications') }}"
+       class="rtn-topbar-bell"
+       aria-label="{{ notif_count > 0 ? notif_count ~ ' notifications non lues' : 'Notifications' }}"
+       data-turbo="false">
+      {{ icon('bell', 22) }}
+      {% if notif_count > 0 %}
+        <span class="rtn-bell-count" aria-hidden="true">{{ notif_count }}</span>
+      {% endif %}
+    </a>
+    {# Compact user chip #}
+    <span class="rtn-topbar-user" aria-hidden="true">
+      {{ app.user.email|split('@')|first }}
+    </span>
+  </div>
+</header>
+
+{# ======================================================
+   PHONE: RESPONSABLE top hamburger bar + drawer
+   ====================================================== #}
+{% if is_resp or is_admin %}
+<div class="rtn-mobile-topbar rtn-resp-mobile">
+  <span class="rtn-mobile-brand">RolTech GMAO</span>
+  <div class="rtn-mobile-topbar-tools">
+    <a id="rtn-bell-mobile-resp"
+       href="{{ path('notifications') }}"
+       class="rtn-topbar-bell"
+       aria-label="{{ notif_count > 0 ? notif_count ~ ' non lues' : 'Notifications' }}"
+       data-turbo="false">
+      {{ icon('bell', 22) }}
+      {% if notif_count > 0 %}
+        <span class="rtn-bell-count" aria-hidden="true">{{ notif_count }}</span>
+      {% endif %}
+    </a>
+    <button class="rtn-menu-btn"
+            type="button"
+            id="rtn-drawer-btn"
+            aria-expanded="false"
+            aria-controls="rtn-drawer"
+            aria-label="Ouvrir le menu">
+      {{ icon('menu', 24) }}
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{# ======================================================
+   PHONE: TECHNICIEN bottom tab bar
+   ====================================================== #}
+{% if is_tech %}
+<nav class="rtn-tab-bar" aria-label="Navigation principale">
+  {% for item in tab_items %}
+    {% set is_active = (current_route == item.route) %}
+    <a href="{{ path(item.route) }}"
+       class="rtn-tab{% if is_active %} rtn-tab--active{% endif %}"
+       {% if is_active %}aria-current="page"{% endif %}
+       aria-label="{{ item.label }}"
+       data-turbo="false">
+      <span class="rtn-tab-icon">
+        {{ icon(item.icon, 22) }}
+        {% if item.route == 'notifications' and notif_count > 0 %}
+          <span class="rtn-tab-badge" aria-label="{{ notif_count }} non lues">{{ notif_count }}</span>
+        {% endif %}
+      </span>
+      <span class="rtn-tab-label">{{ item.label|split(' ')|first }}</span>
+    </a>
+  {% endfor %}
+  {# "Plus" button for extra items #}
+  {% if drawer_extra|length > 0 %}
+  <button class="rtn-tab rtn-tab-more"
+          type="button"
+          id="rtn-drawer-btn"
+          aria-expanded="false"
+          aria-controls="rtn-drawer"
+          aria-label="Plus d'options">
+    {{ icon('menu', 22) }}
+    <span class="rtn-tab-label">Plus</span>
+  </button>
+  {% endif %}
+</nav>
+{% endif %}
+
+{# ======================================================
+   SHARED SLIDE-OVER DRAWER (phone, both roles)
+   ====================================================== #}
+<div id="rtn-drawer"
+     class="rtn-drawer"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Menu"
+     hidden>
+  <div class="rtn-drawer-backdrop" id="rtn-drawer-backdrop" aria-hidden="true"></div>
+  <div class="rtn-drawer-panel">
+    <div class="rtn-drawer-header">
+      <span class="rtn-drawer-title">Menu</span>
+      <button class="rtn-drawer-close"
+              type="button"
+              id="rtn-drawer-close"
+              aria-label="Fermer le menu">
+        {{ icon('x', 24) }}
+      </button>
+    </div>
+    <ul class="rtn-drawer-menu" role="list">
+      {% if is_tech %}
+        {# Extra items beyond the tab bar #}
+        {% for item in drawer_extra %}
+          {% set is_active = (current_route == item.route) %}
+          <li>
+            <a href="{{ path(item.route) }}"
+               class="rtn-drawer-link{% if is_active %} rtn-drawer-link--active{% endif %}"
+               {% if is_active %}aria-current="page"{% endif %}
+               data-turbo="false">
+              <span class="rtn-drawer-icon">{{ icon(item.icon, 20) }}</span>
+              {{ item.label }}
+            </a>
+          </li>
+        {% endfor %}
+        <li class="rtn-drawer-separator" role="separator"></li>
+        {% if is_granted('ROLE_ADMIN') %}
+        <li>
+          <a href="{{ path('admin') }}" class="rtn-drawer-link" data-turbo="false">
+            <span class="rtn-drawer-icon">{{ icon('shield-check', 20) }}</span>
+            Administration
+          </a>
+        </li>
+        {% endif %}
+        <li>
+          <a href="{{ path('app_logout') }}" class="rtn-drawer-link rtn-drawer-link--danger" data-turbo="false">
+            <span class="rtn-drawer-icon">{{ icon('log-out', 20) }}</span>
+            Déconnexion
+          </a>
+        </li>
+      {% else %}
+        {# Responsable: all items in drawer #}
+        {% for item in nav_items %}
+          {% set is_active = (current_route == item.route) %}
+          <li>
+            <a href="{{ path(item.route) }}"
+               class="rtn-drawer-link{% if is_active %} rtn-drawer-link--active{% endif %}"
+               {% if is_active %}aria-current="page"{% endif %}
+               data-turbo="false">
+              <span class="rtn-drawer-icon">{{ icon(item.icon, 20) }}</span>
+              {{ item.label }}
+              {% if item.route == 'notifications' and notif_count > 0 %}
+                <span class="rtn-tab-badge rtn-drawer-badge">{{ notif_count }}</span>
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+        <li class="rtn-drawer-separator" role="separator"></li>
+        {% if is_granted('ROLE_ADMIN') %}
+        <li>
+          <a href="{{ path('admin') }}" class="rtn-drawer-link" data-turbo="false">
+            <span class="rtn-drawer-icon">{{ icon('shield-check', 20) }}</span>
+            Administration
+          </a>
+        </li>
+        {% endif %}
+        <li>
+          <a href="{{ path('app_logout') }}" class="rtn-drawer-link rtn-drawer-link--danger" data-turbo="false">
+            <span class="rtn-drawer-icon">{{ icon('log-out', 20) }}</span>
+            Déconnexion
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
