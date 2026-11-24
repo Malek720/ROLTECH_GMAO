@@ -20,6 +20,5 @@
 ###< symfony/asset-mapper ###
 
 # database dumps and local backups
-*.sql
 backup*
 
