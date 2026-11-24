@@ -662,3 +662,85 @@ Verification script output:
      - `/machine/1` (Fiche machine)
      - `/panne/declarer` (Déclaration panne)
    - Target score: **$\ge 98/100$** (zero color contrast failures, complete ARIA landmark labeling, valid heading structures).
+
+## Phase 9b fix: contrast and login
+
+### 1. Root Causes
+1. **Badges and Data-Status Badges (Bug 1)**: `templates/components/status_badge.html.twig` and `templates/admin/field/badge.html.twig` included leftover inline `<style>` tags defining `.rtn-badge { background: color-mix(in srgb, var(--rtn-badge-color) 16%, white); }`. Concurrently, `assets/styles/rtn-ui.css` set `.rtn-badge { color: var(--rtn-text) !important; }` (`#eceff4`), causing white text on white/pale background across tables, cards, and search results.
+2. **Map Popup Transparency (Bug 2)**: `assets/styles/rtn-ui.css` styled `.leaflet-popup-content-wrapper` and `.leaflet-popup-tip` with `var(--rtn-snow1)` and `var(--rtn-polar2)`. Because these variables were never defined, the browser discarded the property, rendering the popup transparent over map tiles; close button, links, and buttons lacked dark theme styling.
+3. **Login Page Visual Breakage (Bug 3)**: `templates/security/login.html.twig` called `{{ parent() }}` in `{% block stylesheets %}`, loading `rtn-ui.css` alongside `login.css`. 5 component classes collided: `.rtn-card`, `.rtn-eyebrow`, `.rtn-field`, `.rtn-sidebar`, `.rtn-sidebar-footer`. In particular, `rtn-ui.css` forced `height: 100vh; position: sticky;` on `.rtn-sidebar` and extra margin/padding on `.rtn-card`, overflowing the viewport, cutting off the footer, and creating an awkward gap above the form. Furthermore, the submit button used white text on `#88c0d0` (1.97:1 contrast), and eyebrow, placeholder, and footer colors failed WCAG AA.
+
+### 2. Undefined CSS Variables Found
+The automated audit identified 9 undefined `--rtn-*` variables:
+- `--rtn-snow1` (used in `.leaflet-popup-content-wrapper` and `.leaflet-popup-tip`)
+- `--rtn-polar2` (used in `.leaflet-popup-content-wrapper`)
+- `--rtn-bg-surface` (used in KPI tables, search items, fiche cards, dispatch cards, notifications)
+- `--rtn-border-strong` (used in card hover borders)
+- `--rtn-transition-normal` (used in card transitions)
+- `--rtn-space-xs`, `--rtn-space-sm`, `--rtn-space-md`, `--rtn-space-lg` (used in spacing across templates and components)
+
+### 3. Colliding CSS Classes
+Script `tools/check-css-collisions.mjs` identified 5 class selectors present in both `assets/styles/login.css` and `assets/styles/rtn-ui.css`:
+- `.rtn-card`
+- `.rtn-eyebrow`
+- `.rtn-field`
+- `.rtn-sidebar`
+- `.rtn-sidebar-footer`
+
+### 4. What Changed
+1. **Design System Tokens & Popups (`assets/styles/rtn-ui.css`)**:
+   - Added semantic tokens to `:root`: `--rtn-bg-surface` (`#1e2638`), `--rtn-border-strong` (`#81a1c1`), `--rtn-transition-normal` (`250ms ease-out`), `--rtn-space-{xs,sm,md,lg}`, `--rtn-badge-info-*`, `--rtn-badge-confirmed-*`, `--rtn-badge-demo-*`.
+   - Replaced `--rtn-snow1` / `--rtn-polar2` with `--rtn-bg-card` and `--rtn-text`, adding visible border (`--rtn-border`), shadow, accessible close button, link colors (`--rtn-link`), and primary action button styling (`.rtn-map-popup .rtn-button`).
+   - Removed conflicting `!important` text colors on badges and defined explicit high-contrast badge variants (`.rtn-badge-ok`, `.rtn-badge-proche`, `.rtn-badge-echue`, `.rtn-badge-warning`, `.rtn-badge-info`, `.rtn-badge-confirmed`, `.rtn-badge-demo`).
+2. **Status Badge Template (`templates/components/status_badge.html.twig`)**:
+   - Removed the inline `<style>` block containing the white-mix rule.
+   - Assigned proper badge variants to each status and data status (`confirmed`, `demo`), keeping icon + text (Rule 24).
+   - Cleaned up obsolete inline `<style>` in `templates/admin/field/badge.html.twig`.
+3. **Login Stylesheet & Template (`templates/security/login.html.twig`, `assets/styles/login.css`)**:
+   - Removed `{{ parent() }}` from `{% block stylesheets %}` in `login.html.twig` so `rtn-ui.css` is never loaded on `/login`.
+   - Set viewport fitting: `min-height: 100dvh` (`100vh` fallback), card `max-height: calc(100dvh - 48px)` with internal scroll fallback, ensuring no page scrollbar at 1280x720 and 1440x900.
+   - Restored sidebar footer visibility and vertically centered form layout without awkward gaps.
+   - Added responsive layout for $\le 720$px / 375px where role picker becomes a horizontal scrollable tab row above the form.
+   - Added visible focus ring and `prefers-reduced-motion` support.
+   - Fixed contrast: dark button label `#020817` on role accents ($\ge 7.0:1$), `#434c5e` eyebrow ($8.63:1$), `#5c6779` placeholder ($5.57:1$), `#4c566a` footer ($6.99:1$), `#434c5e` role picker item ($8.18:1$).
+4. **Automated Verification**:
+   - `tools/check-css-vars.mjs`: parses all `.css`, `.js`, and `.twig` files and validates that 100% of `--rtn-*` variables are defined.
+   - `tools/check-css-collisions.mjs`: verifies class collision isolation between `login.css` and `rtn-ui.css`.
+   - `tools/check-contrast.mjs`: parses declared CSS rules and computes contrast ratios for all 27 critical UI pairs.
+   - `tests/Functional/LoginAssetsTest.php`: functional PHPUnit test asserting `/login` does not load `rtn-ui.css` or `ui.js` and preserves all behavior hooks, while shell pages load both.
+
+### 5. Final WCAG AA Contrast Table
+
+| Element / Pair Name | FG Color | BG Color | Contrast Ratio | WCAG AA Threshold | Status |
+|---|---|---|---|---|---|
+| Body text on canvas | `#eceff4` | `#020817` | **17.36:1** | $\ge 4.5:1$ | PASS |
+| Body text on card | `#eceff4` | `#252d3e` | **11.96:1** | $\ge 4.5:1$ | PASS |
+| Muted text on card | `#d8dee9` | `#252d3e` | **10.20:1** | $\ge 4.5:1$ | PASS |
+| Link on card | `#88c0d0` | `#252d3e` | **6.89:1** | $\ge 4.5:1$ | PASS |
+| Button primary label | `#020817` | `#88c0d0` | **10.00:1** | $\ge 4.5:1$ | PASS |
+| Button secondary label | `#eceff4` | `#3b465c` | **8.22:1** | $\ge 4.5:1$ | PASS |
+| Button ghost label on card | `#eceff4` | `#252d3e` | **11.96:1** | $\ge 4.5:1$ | PASS |
+| Button danger label | `#020817` | `#bf616a` | **4.89:1** | $\ge 4.5:1$ | PASS |
+| Badge OK text | `#a3be8c` | `#1e3328` | **6.61:1** | $\ge 4.5:1$ | PASS |
+| Badge Proche text | `#d08770` | `#382822` | **4.94:1** | $\ge 4.5:1$ | PASS |
+| Badge Echue text | `#ffb4ab` | `#3c1e24` | **8.81:1** | $\ge 4.5:1$ | PASS |
+| Badge Warning text | `#ebcb8b` | `#3d331f` | **7.95:1** | $\ge 4.5:1$ | PASS |
+| Badge Info text | `#88c0d0` | `#1c2e39` | **7.00:1** | $\ge 4.5:1$ | PASS |
+| Badge Confirmed (Data Status) | `#88c0d0` | `#1c2e39` | **7.00:1** | $\ge 4.5:1$ | PASS |
+| Badge Demo (Data Status) | `#d8b4e2` | `#2d2238` | **8.26:1** | $\ge 4.5:1$ | PASS |
+| Map popup text on card bg | `#eceff4` | `#252d3e` | **11.96:1** | $\ge 4.5:1$ | PASS |
+| Map popup link on card bg | `#88c0d0` | `#252d3e` | **6.89:1** | $\ge 4.5:1$ | PASS |
+| Map popup close button on card bg | `#d8dee9` | `#252d3e` | **10.20:1** | $\ge 4.5:1$ | PASS |
+| Map popup action button label | `#020817` | `#88c0d0` | **10.00:1** | $\ge 4.5:1$ | PASS |
+| Map popup action button on popup bg | `#88c0d0` | `#252d3e` | **6.89:1** | $\ge 3.0:1$ | PASS |
+| Login submit button label (Technicien) | `#020817` | `#88c0d0` | **10.00:1** | $\ge 4.5:1$ | PASS |
+| Login submit button label (Responsable) | `#020817` | `#d08770` | **7.03:1** | $\ge 4.5:1$ | PASS |
+| Login submit button label (Admin) | `#020817` | `#b48ead` | **7.06:1** | $\ge 4.5:1$ | PASS |
+| Login eyebrow on card bg | `#434c5e` | `#ffffff` | **8.63:1** | $\ge 4.5:1$ | PASS |
+| Login placeholder on input bg | `#5c6779` | `#fbfcfe` | **5.57:1** | $\ge 4.5:1$ | PASS |
+| Login footer text on sidebar bg | `#4c566a` | `#f7f9fc` | **6.99:1** | $\ge 4.5:1$ | PASS |
+| Login role picker item on sidebar bg | `#434c5e` | `#f7f9fc` | **8.18:1** | $\ge 4.5:1$ | PASS |
+| Login role picker icon on icon bg | `#434c5e` | `#e5e9f0` | **7.09:1** | $\ge 3.0:1$ | PASS |
+
+### 6. What Could Not Be Tested Without a Browser
+Headless Chrome automated screenshots at 1440x900, 1280x720, and 390x844 could not be captured because Google Chrome is not installed at `C:\Program Files\Google\Chrome\Application\chrome.exe` on this environment and the local dev server is not active on port 8000. Visual verification is covered via automated CSS rule parsing, AST collision checks, and PHPUnit DOM assertion tests.
